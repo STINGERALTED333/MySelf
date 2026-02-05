@@ -384,44 +384,66 @@ if not localChar then
     return 
 end
 
--- Add debug print
-print("Local character found:", localChar.Name)
+local queryHitbox = localChar:FindFirstChild("QueryHitbox", true)  -- true = search descendants
+if not queryHitbox or not queryHitbox:IsA("BasePart") then
+    print("WARNING: No QueryHitbox found in character!")
+    cleanupSoundBox(box)
+    return
+end
+
+print("QueryHitbox found:", queryHitbox:GetFullName())
 
 local overlapParams = OverlapParams.new()
-overlapParams.FilterType = Enum.RaycastFilterType.Blacklist  -- Changed to Blacklist
-overlapParams.FilterDescendantsInstances = {box}  -- Only exclude the box itself
+overlapParams.FilterType = Enum.RaycastFilterType.Whitelist
+overlapParams.FilterDescendantsInstances = {queryHitbox}  -- Only check this specific part
+
+data.touchConnection = RunService.Heartbeat:Connect(function()
+    if not box.Parent or not isActive then
+        cleanupSoundBox(box)
+        return
+    end
     
-    data.touchConnection = RunService.Heartbeat:Connect(function()
-        if not box.Parent or not isActive then
-            cleanupSoundBox(box)
-            return
-        end
-        
-        if tick() - data.startTime >= data.duration then
-            cleanupSoundBox(box)
-            return
-        end
-        
-        if not localChar.Parent then return end
-        
+    if tick() - data.startTime >= data.duration then
+        cleanupSoundBox(box)
+        return
+    end
+    
+    if not localChar.Parent then return end
+    
+    local queryHitbox = localChar:FindFirstChild("QueryHitbox", true)
+    if not queryHitbox then 
+        print("QueryHitbox not found!")
+        return 
+    end
+    
+    local overlapParams = OverlapParams.new()
+    overlapParams.FilterType = Enum.RaycastFilterType.Blacklist
+    overlapParams.FilterDescendantsInstances = {box}
+    
     local partsInBox = workspace:GetPartBoundsInBox(box.CFrame, box.Size, overlapParams)
     
-    if #partsInBox > 0 then
-        print("COLLISION DETECTED!") -- Add this
+    -- Manually check if QueryHitbox is in the detected parts
+    local foundQueryHitbox = false
+    for _, part in ipairs(partsInBox) do
+        if part == queryHitbox then
+            foundQueryHitbox = true
+            break
+        end
+    end
+    
+    if foundQueryHitbox then
+        print("QueryHitbox collision detected!")
         local currentTime = tick()
         if currentTime - data.lastFireTime >= DragConfig.DebounceTime then
             data.lastFireTime = currentTime
             if not Getcooldown("Block") then
-                print("FIRING BLOCK EVENT") -- Add this
+                print("FIRING BLOCK EVENT")
                 remoteEvent:FireServer("UseActorAbility", {"Block"})
-            else
-                print("BLOCK ON COOLDOWN") -- Add this
             end
-        else
-            print("DEBOUNCE ACTIVE") -- Add this
         end
     end
-    end)
+end)
+    
 end
 
 local function monitorKillerSounds(killer)
