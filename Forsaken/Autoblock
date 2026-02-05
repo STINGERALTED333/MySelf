@@ -401,23 +401,23 @@ box.CFrame = humanoidRootPart.CFrame
         
         if not localChar.Parent then return end
         
-        local partsInBox = workspace:GetPartBoundsInBox(box.CFrame, box.Size, overlapParams)
-        
-        if #partsInBox > 0 then
-            local currentTime = tick()
-            if currentTime - data.lastFireTime >= DragConfig.DebounceTime then
-                data.lastFireTime = currentTime
-                if not Getcooldown("Block") then
-                remoteEvent:FireServer(
-    "UseActorAbility",
-    {
-       "Block"
-    }
-)
-
-                end
+    local partsInBox = workspace:GetPartBoundsInBox(box.CFrame, box.Size, overlapParams)
+    
+    if #partsInBox > 0 then
+        print("COLLISION DETECTED!") -- Add this
+        local currentTime = tick()
+        if currentTime - data.lastFireTime >= DragConfig.DebounceTime then
+            data.lastFireTime = currentTime
+            if not Getcooldown("Block") then
+                print("FIRING BLOCK EVENT") -- Add this
+                remoteEvent:FireServer("UseActorAbility", {"Block"})
+            else
+                print("BLOCK ON COOLDOWN") -- Add this
             end
+        else
+            print("DEBOUNCE ACTIVE") -- Add this
         end
+    end
     end)
 end
 
