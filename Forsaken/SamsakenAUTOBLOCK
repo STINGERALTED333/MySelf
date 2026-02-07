@@ -14,102 +14,204 @@ local ProjectileSizes = {
 }
 
 local killerSounds = {
+    ["LordJack"] = {
+        slash = "rbxassetid://0",
+    },
+    
+    ["LordBoss1"] = {
+        slash = "rbxassetid://5835032207",
+    },
+    
+    ["LordBoss3"] = {
+        slash = "rbxassetid://135034604074043",
+    },
+    
+    ["LordBoss4"] = {
+        punch = "rbxassetid://136994652370263",
+    },
+    
+    ["LordHiddenBoss"] = {
+        slash = "rbxassetid://0",
+    },
+    
+    ["Void2"] = {
+        slash = "rbxassetid://136874013445794",
+    },
+    
+    ["KingJack"] = {
+        slash = "rbxassetid://129892037222045",
+    },
+    
+    ["Furnace"] = {
+        punch = "rbxassetid://2900319240",
+        slash = "rbxassetid://112758963155190",
+    },
+    
+    ["Homr"] = {
+        slash = "rbxassetid://72419133658607",
+    },
+    
+    ["#RetroDIO"] = {
+        punch = "rbxassetid://81245466767623",
+        punchSakuya = "rbxassetid://70402635816279",
+        punchBuffedTW = "rbxassetid://81245466767623",
+        punchClassic = "rbxassetid://81245466767623",
+    },
+    
+    ["Tripwire"] = {
+        slash = "rbxassetid://80516583309685",
+    },
+    
+    ["REDACTED"] = {
+        slash = "rbxassetid://9126012528",
+    },
+    
+    ["#2011X"] = {
+        slash = "rbxassetid://112758963155190",
+        slashEvilSans = "rbxassetid://112758963155190",
+        slashArea51 = "rbxassetid://112758963155190",
+    },
+    
+    ["DustSansREMODEL"] = {
+        slash = "rbxassetid://92617976891975",
+    },
+    
+    ["SkiddedLord"] = {
+        slash = "rbxassetid://80516583309685",
+    },
+    
+    ["ExpiredJack"] = {
+        slash = "rbxassetid://129892037222045",
+    },
+    
+    ["TBJack"] = {
+        slash = "rbxassetid://129892037222045",
+    },
+    
+    ["ExpiredJackPlayer"] = {
+        slash = "rbxassetid://129892037222045",
+        slashLoreAccurate = "rbxassetid://129892037222045",
+        slashAlternate = "rbxassetid://129892037222045",
+    },
+    
+    ["JohnDoeLoreAccurate"] = {
+        slash = "rbxassetid://93875373968012",
+    },
+    
+    ["DEADMEATPapyrusP2"] = {
+        slash = "rbxassetid://8588112553",
+    },
+    
+    ["#DustTrustPhase67"] = {
+        slash = "rbxassetid://8588112553",
+    },
+    
+    ["#PapyrusKiller67"] = {
+        slash = "rbxassetid://9070607596",
+    },
+    
+    ["1eggs"] = {
+        slash = "rbxassetid://86430587681437",
+    },
+    
+    ["#TDSonic.EXEe"] = {
+        slash = "rbxassetid://2174941179",
+    },
+    
+    ["Scribzic"] = {
+        slash = "rbxassetid://122728861626351",
+    },
+    
+    ["#NoliRework"] = {
+        slash = "rbxassetid://90313898226537",
+    },
+    
+    ["__DaBoom"] = {
+        slash = "rbxassetid://1",
+    },
+    
+    ["DustSans"] = {
+        slash = "rbxassetid://92617976891975",
+        slashHyper = "rbxassetid://92617976891975",
+    },
+    
+    ["DrZomboss"] = {
+        slash = "rbxasseid://7890100316",
+    },
+    
+    ["TinkyWinky"] = {
+        slash = "http://www.roblox.com/asset/?id=12222216",
+    },
+    
+    ["Kolossos"] = {
+        slash = "rbxassetid://2174941179",
+    },
+    
+    ["Pootis"] = {
+        slash = "rbxassetid://5835032207",
+    },
+    
+    ["Ivxn"] = {
+        slash = "rbxassetid://91453760777118",
+    },
+    
+    ["DoesBadThingsGuy"] = {
+        slash = "rbxassetid://105318848173220",
+        slashSawDust = "rbxassetid://112809109188560",
+    },
+    
+    ["tha1s0il"] = {
+        slash = "rbxassetid://102228729296384",
+    },
+    
+    ["Asgore"] = {
+        slash = "rbxassetid://2",
+    },
+    
+    ["Tornado"] = {
+        slash = "rbxassetid://98608639736531",
+    },
+    
+    ["HomerSimpson"] = {
+        slash = "rbxassetid://5835032207",
+        slashGoji = "rbxassetid://5835032207",
+        slashHacklord = "rbxassetid://119942598489800",
+    },
+    
+    ["KillerFxn"] = {
+        slash = "rbxassetid://91453760777118",
+        slashMangoMark = "rbxassetid://0",
+        slashDrReflex = "rbxassetid://17612681040",
+        slashFlorentino = "rbxassetid://1",
+        slashSkibidi = "rbxassetid://1",
+    },
+    
+    ["Guest666"] = {
+        slash1 = "rbxassetid://119583605486352",
+        slash2 = "rbxassetid://79980897195554",
+        slash1EvilBrute = "rbxassetid://119583605486352",
+        slash2EvilBrute = "rbxassetid://79980897195554",
+    },
+    
+    ["#SonicExe"] = {
+        slash = "rbxassetid://112758963155190",
+        slashForsakenX = "rbxassetid://112758963155190",
+        slashRewrite = "rbxassetid://112758963155190",
+        slashEvilSans = "rbxassetid://136695489790441",
+    },
+    
+    ["#EvilBoxMan"] = {
+        slash = "rbxassetid://112809109188560",
+    },
+    
     ["Noli"] = {
-        slash = "rbxassetid://109348678063422",
+        slash = "rbxassetid://136323728355613",
         voidStart = "rbxassetid://107347032614322",
         voidLoop = "rbxassetid://89315669689903",
-        slashASPX = "rbxassetid://108610718831698",
-        voidStartASPX = "rbxassetid://129321484816125",
-        voidLoopASPX = "rbxassetid://89315669689903",
-        slashMissingno = "rbxassetid://114742322778642",
-        voidStartMissingno = "rbxassetid://127261018565390",
-        voidLoopMissingno = "rbxassetid://89315669689903",
-        slashUmbra = "rbxassetid://136323728355613",
-        voidStartUmbra = "rbxassetid://123979582011869",
-        voidLoopUmbra = "rbxassetid://89315669689903",
-        slashYAAI = "rbxassetid://112395455254818",
-        slashArtful = "rbxassetid://89004992452376",
-        voidStartArtful = "rbxassetid://85260465177143",
-        slashAdmin = "rbxassetid://131406927389838",
-        voidStartAdmin = "rbxassetid://72569487786799",
-        voidLoopAdmin = "rbxassetid://89315669689903",
-        slashConductor = "rbxassetid://89004992452376",
-        voidStartConductor = "rbxassetid://118493324723683",
-        voidLoopConductor = "rbxassetid://89315669689903",
-        slashNarrator = "rbxassetid://128367348686124",
-        voidStartNarrator = "rbxassetid://75227733554331",
-        voidLoopNarrator = "rbxassetid://89315669689903",
-        slashSinister = "rbxassetid://108610718831698",
-        voidStartSinister = "rbxassetid://129321484816125",
-        voidLoopSinister = "rbxassetid://89315669689903",
     },
     
-    ["Slasher"] = {
-        slash = "rbxassetid://112809109188560",
-        slashPursuer = "rbxassetid://108907358619313",
-        slashKyle = "rbxassetid://107444859834748",
-        slashHomerunner = "rbxassetid://105840448036441",
-        slashHeadless = "rbxassetid://116581754553533",
-        slashCombatInitiation = "rbxassetid://94317217837143",
-        slashShining = "rbxassetid://124903763333174",
-    },
-    
-    ["c00lkidd"] = {
-        slash = "rbxassetid://80516583309685",
-        slashMafioso = "rbxassetid://84307400688050",
-        slashMaskedMan = "rbxassetid://82221759983649",
-        slashSavior = "rbxassetid://75330693422988",
-        slashColorAndElectricity = "rbxassetid://128195973631079",
-        slashGrollusiam = "rbxassetid://80516583309685",
-        slashTvTime = "rbxassetid://79391273191671",
-    },
-    
-    ["JohnDoe"] = {
-        slash = "rbxassetid://140242176732868",
-        slashBoomerFormula = "rbxassetid://140242176732868",
-        slashGasharpoon = "rbxassetid://86174610237192",
-        slashAberrant = "rbxassetid://131123355704017",
-        slashCrystalized = "rbxassetid://105204810054381",
-        slashLivingLegend = "rbxassetid://98675142200448",
-    },
-    
-    ["1x1x1x1"] = {
-        slash = "rbxassetid://117173212095661",
-        slashVoidbound = "rbxassetid://95079963655241",
-        slashTimeless = "rbxassetid://85853080745515",
-        slashLancer = "rbxassetid://109431876587852",
-        slashHacklord = "rbxassetid://119942598489800",
-        slashAceOfSpades = "rbxassetid://115026634746636",
-        slashEverfrost = "rbxassetid://119089145505438",
-        slashBoomerFormula = "rbxassetid://101199185291628",
-        slashFleskhjerta = "rbxassetid://85853080745515",
-        slashMartyr = "rbxassetid://121954639447247",
-        slashAbyss = "rbxassetid://128856426573270",
-        slashPrimordial = "rbxassetid://117173212095661",
-        slashTest = "rbxassetid://95079963655241",
-        slashCrazyblox = "rbxassetid://98111231282218",
-    },
-    
-    ["Jason"] = {
-        slash = "rbxassetid://112809109188560",
-        slashPursuer = "rbxassetid://108907358619313",
-        slashKillerKyle = "rbxassetid://12222216",
-    },
-    
-    ["Sixer"] = {
-        slash1 = "rbxassetid://124397369810639",
-        slash2 = "rbxassetid://76467993976301",
-        slash3 = "rbxassetid://86785901416030",
-        slash1Symbol = "rbxassetid://71805956520207",
-        slash2Symbol = "rbxassetid://125213046326879",
-        slash1Omega = "rbxassetid://119583605486352",
-        slash1Milestone100 = "rbxassetid://127557531826290",
-        slash2Milestone100 = "rbxassetid://108651070773439",
-        slash3Milestone100 = "rbxassetid://74842815979546",
-        slash4Milestone100 = "rbxassetid://119583605486352",
-        slash1Krampus = "rbxassetid://96594507550917",
-        slash2Krampus = "rbxassetid://139996647355899",
-        slash3Krampus = "rbxassetid://107345261604889",
+    ["!DukeErisia"] = {
+        slash = "rbxassetid://14865735071",
     },
     
     ["!Erlking"] = {
@@ -128,16 +230,20 @@ local killerSounds = {
         slash = "rbxassetid://12222216",
     },
     
-    ["!Fog"] = {
-        slash = "rbxassetid://12222208",
+    ["1x1x1x1"] = {
+        slash = "rbxassetid://90367040935271",
     },
     
-    ["!Skinwalker"] = {
-        slash = "rbxassetid://12222208",
+    ["JohnDoe"] = {
+        slash = "rbxassetid://92617976891975",
     },
     
-    ["_c00lerkiddEno"] = {
-        slash = "rbxassetid://80516583309685",
+    ["Slasher"] = {
+        slash = "rbxassetid://112809109188560",
+    },
+    
+    ["c00lkidd"] = {
+        slash = "rbxassetid://102228729296384",
     },
 }
 
@@ -340,16 +446,12 @@ local function getSoundBoxConfig(soundId, killerType)
         return soundSpecificConfig[soundId]
     end
     
-    if killerSoundBoxConfig[killerType] then
-        return killerSoundBoxConfig[killerType]
-    end
-    
-    return {
-        Size = Vector3.new(4.5, 6, 7.5),
-        Duration = 0.5,
+    return    {
+        Size = Vector3.new(6, 7, 8),
+        Duration = 0.25,
         Delay = 0,
-        Offset = Vector3.new(0, 0, 0)
-    }
+        Offset = Vector3.new(0, 0, -3)
+    },
 end
 
 local function createSoundBox(humanoidRootPart, soundId)
