@@ -18,57 +18,60 @@ local killerSounds = {
     ["Noli"] = {
         slash = "rbxassetid://109348678063422",
         voidStart = "rbxassetid://107347032614322",
-        voidLoop = "rbxassetid://113037804008732",
+        voidLoop = "rbxassetid://89315669689903",
         slashASPX = "rbxassetid://108610718831698",
-        voidLoopASPX = "rbxassetid://113037804008732",
+        voidStartASPX = "rbxassetid://129321484816125",
+        voidLoopASPX = "rbxassetid://89315669689903",
         slashMissingno = "rbxassetid://114742322778642",
-        voidLoopMissingno = "rbxassetid://114710327235372",
+        voidStartMissingno = "rbxassetid://127261018565390",
+        voidLoopMissingno = "rbxassetid://89315669689903",
         slashUmbra = "rbxassetid://136323728355613",
-        voidLoopUmbra = "rbxassetid://90905210726859",
+        voidStartUmbra = "rbxassetid://123979582011869",
+        voidLoopUmbra = "rbxassetid://89315669689903",
         slashYAAI = "rbxassetid://112395455254818",
-        voidLoopYAAI = "rbxassetid://124580948668075",
         slashArtful = "rbxassetid://89004992452376",
-        voidLoopArtful = "rbxassetid://140659146085461",
+        voidStartArtful = "rbxassetid://85260465177143",
         slashAdmin = "rbxassetid://131406927389838",
-        voidLoopAdmin = "rbxassetid://71090513459907",
-        slashJX = "rbxassetid://106300477136129", 
-        voidLoopJX = "rbxassetid://105415540898010",
-        voidLoopMeta = "rbxassetid://99282022492246",
-        slashSaggital = "rbxassetid://108610718831698",
-        voidLoopSaggital = "rbxassetid://113037804008732",
+        voidStartAdmin = "rbxassetid://72569487786799",
+        voidLoopAdmin = "rbxassetid://89315669689903",
+        slashConductor = "rbxassetid://89004992452376",
+        voidStartConductor = "rbxassetid://118493324723683",
+        voidLoopConductor = "rbxassetid://89315669689903",
+        slashNarrator = "rbxassetid://128367348686124",
+        voidStartNarrator = "rbxassetid://75227733554331",
+        voidLoopNarrator = "rbxassetid://89315669689903",
+        slashSinister = "rbxassetid://108610718831698",
+        voidStartSinister = "rbxassetid://129321484816125",
+        voidLoopSinister = "rbxassetid://89315669689903",
     },
     
     ["Slasher"] = {
         slash = "rbxassetid://112809109188560",
-        gashSwing = "rbxassetid://102228729296384",
-        behead = "rbxassetid://112809109188560",
         slashPursuer = "rbxassetid://108907358619313",
-        gashSwingPursuer = "rbxassetid://127793641088496",
-        slashKyle = "rbxassetid://12222216",
-        gashSwingKyle = "rbxassetid://102228729296384",
-        gashWhitePumpkin = "rbxassetid://110372418055226",
+        slashKyle = "rbxassetid://107444859834748",
         slashHomerunner = "rbxassetid://105840448036441",
-        gashHomerunner = "rbxassetid://86494585504534",
         slashHeadless = "rbxassetid://116581754553533",
-        gashHeadless = "rbxassetid://86833981571073"
+        slashCombatInitiation = "rbxassetid://94317217837143",
+        slashShining = "rbxassetid://124903763333174",
     },
     
-   ["c00lkidd"] = {
+    ["c00lkidd"] = {
         slash = "rbxassetid://80516583309685",
-        walkspeedStart = "rbxassetid://73762171929471",
-        walkspeedLoop = "rbxassetid://105200830849301",
         slashMafioso = "rbxassetid://84307400688050",
         slashMaskedMan = "rbxassetid://82221759983649",
-        walkspeedLoopMaskedMan = "rbxassetid://75006340803049",
         slashSavior = "rbxassetid://75330693422988",
-        walkspeedLoopSavior = "rbxassetid://125427128221522",
+        slashColorAndElectricity = "rbxassetid://128195973631079",
+        slashGrollusiam = "rbxassetid://80516583309685",
+        slashTvTime = "rbxassetid://79391273191671",
     },
     
     ["JohnDoe"] = {
-        slash1 = "rbxassetid://140242176732868",
-        slash2 = "rbxassetid://86174610237192",
-        slashLivingLegend = "rbxassetid://81702359653578",
-        gasharpoon = "rbxassetid://86174610237192"
+        slash = "rbxassetid://140242176732868",
+        slashBoomerFormula = "rbxassetid://140242176732868",
+        slashGasharpoon = "rbxassetid://86174610237192",
+        slashAberrant = "rbxassetid://131123355704017",
+        slashCrystalized = "rbxassetid://105204810054381",
+        slashLivingLegend = "rbxassetid://98675142200448",
     },
     
     ["1x1x1x1"] = {
@@ -79,20 +82,64 @@ local killerSounds = {
         slashHacklord = "rbxassetid://119942598489800",
         slashAceOfSpades = "rbxassetid://115026634746636",
         slashEverfrost = "rbxassetid://119089145505438",
-
+        slashBoomerFormula = "rbxassetid://101199185291628",
+        slashFleskhjerta = "rbxassetid://85853080745515",
+        slashMartyr = "rbxassetid://121954639447247",
+        slashAbyss = "rbxassetid://128856426573270",
+        slashPrimordial = "rbxassetid://117173212095661",
+        slashTest = "rbxassetid://95079963655241",
+        slashCrazyblox = "rbxassetid://98111231282218",
     },
     
-    ["Guest666"] = {
-        slash1 = "rbxassetid://119583605486352",
-        slash2 = "rbxassetid://79980897195554",
-
-        slash1Omega = "rbxassetid://117231507259853",
-        slash2Omega = "rbxassetid://101698569375359",
-        slash3Omega = "rbxassetid://101553872555606",
-
+    ["Jason"] = {
+        slash = "rbxassetid://112809109188560",
+        slashPursuer = "rbxassetid://108907358619313",
+        slashKillerKyle = "rbxassetid://12222216",
+    },
+    
+    ["Sixer"] = {
+        slash1 = "rbxassetid://124397369810639",
+        slash2 = "rbxassetid://76467993976301",
+        slash3 = "rbxassetid://86785901416030",
         slash1Symbol = "rbxassetid://71805956520207",
-        slash2Symbol = "rbxassetid://125213046326879"
-    }
+        slash2Symbol = "rbxassetid://125213046326879",
+        slash1Omega = "rbxassetid://119583605486352",
+        slash1Milestone100 = "rbxassetid://127557531826290",
+        slash2Milestone100 = "rbxassetid://108651070773439",
+        slash3Milestone100 = "rbxassetid://74842815979546",
+        slash4Milestone100 = "rbxassetid://119583605486352",
+        slash1Krampus = "rbxassetid://96594507550917",
+        slash2Krampus = "rbxassetid://139996647355899",
+        slash3Krampus = "rbxassetid://107345261604889",
+    },
+    
+    ["!Erlking"] = {
+        slash = "rbxassetid://106368806396221",
+    },
+    
+    ["!Herobrine"] = {
+        slash = "rbxassetid://83336588073857",
+    },
+    
+    ["!Sancho"] = {
+        slash = "rbxassetid://129697992204296",
+    },
+    
+    ["!SukunaKiller"] = {
+        slash = "rbxassetid://12222216",
+    },
+    
+    ["!Fog"] = {
+        slash = "rbxassetid://12222208",
+    },
+    
+    ["!Skinwalker"] = {
+        slash = "rbxassetid://12222208",
+    },
+    
+    ["_c00lerkiddEno"] = {
+        slash = "rbxassetid://80516583309685",
+    },
 }
 
 local killerSoundBoxConfig = {
