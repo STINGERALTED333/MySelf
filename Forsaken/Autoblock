@@ -1,5 +1,5 @@
 
-local PingReduntMult = 25 -- higher = faster reaction time , calculation: delay(Seconds) - Ping(Miliseconds)
+local PingReduntMult = 4 -- higher = faster reaction time , calculation: delay(Seconds) - Ping(Miliseconds)
 -- cool
 local EXCLUDE_LOCAL_PLAYER = false -- dont toggle 
 local AutoParry = false -- punches after blocking , does not aimbot
