@@ -1,3 +1,6 @@
+if _G.GeneratorScript and _G.GeneratorScript == true then
+return
+end
 local UserInputService = game:GetService("UserInputService")
 local debounce = false  -- cooldown flag
 local cooldownTime = 1  -- seconds
