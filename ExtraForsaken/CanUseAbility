@@ -1,0 +1,59 @@
+--//Use eg canuseability("Punch") returns true if you cant use the ability,false if you can//--
+--//CLIENT script does not account for Actor.AbilitiesDisabled//--
+
+local function canuseability(namein)
+	if game.Workspace:GetAttribute("CooldownsDisabled") then
+		return false
+	end
+	function GetCharges(ability)
+		local success, result = pcall(function()
+			local abilityContainer = game:GetService("Players").LocalPlayer.PlayerGui.MainUI.AbilityContainer
+			local chargeLabel = abilityContainer:FindFirstChild(ability) and abilityContainer[ability]:FindFirstChild("Charges")
+			if chargeLabel and chargeLabel.Text ~= "" then
+				return tonumber(chargeLabel.Text)
+			end
+			return 0
+		end)
+
+		if success then
+			return result or 0
+		else
+			return 0
+		end
+	end
+	local Actors,Status = require(game.ReplicatedStorage.Modules.Actors),require(game.ReplicatedStorage.Modules.Statuses)
+	local Me,Cooldown,ChargesMet = Actors.CurrentActors[game.Players.LocalPlayer],false,false
+
+	if Me and Me.Behavior and Me.Behavior.Abilities then
+		for abilityname,abilitytable in pairs(Me.Cooldowns) do
+			if abilityname == namein then
+				Cooldown = true
+			end
+		end
+
+		if not game.Workspace:GetAttribute("ChargesDisabled") then
+			for abilityname,abilitydata in pairs(Me.Behavior.Abilities) do
+				if abilityname == namein then
+					if abilitydata and abilitydata.Charges and GetCharges(namein) == 0 then
+						ChargesMet = false
+					else
+						ChargesMet = true
+					end
+				end
+			end
+		else
+			ChargesMet = true
+		end
+        local lchar = game.Players.LocalPlayer.Character
+
+        if lchar:GetAttribute("Ragdolling") or lchar:GetAttribute("AbilitiesDisabled") or lchar:GetAttribute("UsingAnimations") or lchar:FindFirstChildOfClass("Tool") then
+            return true
+        end
+
+		if not ChargesMet or Cooldown or game.Players.LocalPlayer.Character.PrimaryPart.Anchored == true or Status:PlayerHasStatus(game.Players.LocalPlayer,"Helpless") or Status:PlayerHasStatus(game.Players.LocalPlayer,"Stunned") then
+			return true
+		else
+			return false
+		end
+	end
+end
