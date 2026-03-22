@@ -20,9 +20,9 @@ JasonCon.EnragedStaminaCap = 80
 
 local JohnCon = require(game:GetService("ReplicatedStorage").Assets.Killers.JohnDoe.Config)
 JohnCon.StaminaLoss = 9.2
-JohnCon.MaxStamina = 110
+JohnCon.MaxStamina = 112
 JohnCon.Speed = 9.25
-JohnCon.SprintSpeed = 27.4
+JohnCon.SprintSpeed = 27.7
 
 local OneCon = require(game:GetService("ReplicatedStorage").Assets.Killers["1x1x1x1"].Config)
 OneCon.StaminaLoss = 9.3
