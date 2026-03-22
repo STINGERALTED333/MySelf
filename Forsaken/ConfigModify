@@ -33,10 +33,10 @@ OneCon.Speed = 8.2
 OneCon.MinStamina = -1
 
 local CoolCon = require(game:GetService("ReplicatedStorage").Assets.Killers.c00lkidd.Config)
-CoolCon.Speed = 8.1
-CoolCon.SprintSpeed = 28.1
+CoolCon.Speed = 9.25
+CoolCon.SprintSpeed = 28.25
 CoolCon.StaminaLoss = 9.25
-CoolCon.MaxStamina = 102
+CoolCon.MaxStamina = 110
 
 local GuestCon = require(game:GetService("ReplicatedStorage").Assets.Survivors.Guest1337.Config)
 GuestCon.BlockSPeedDuration = 1.5
