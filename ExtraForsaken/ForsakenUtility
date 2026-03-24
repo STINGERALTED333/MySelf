@@ -5,7 +5,7 @@ if game:GetService("RunService"):IsServer() then
 end
 
 local Util = {}
-Util.Version = "V.02"
+Util.Version = "V.025"
 Util.DebugMode = true --// can set it manually via the script your using,i need it ON.
 
 local KillersFolder = game.ReplicatedStorage.Assets.Killers
