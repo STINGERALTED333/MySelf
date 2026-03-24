@@ -5,7 +5,7 @@ if game:GetService("RunService"):IsServer() then
 end
 
 local Util = {}
-Util.Version = "V.01"
+Util.Version = "V.02"
 Util.DebugMode = true --// can set it manually via the script your using,i need it ON.
 
 local KillersFolder = game.ReplicatedStorage.Assets.Killers
@@ -54,16 +54,6 @@ if Util.DebugMode == true then
 	OutputDebug("Printing","Loading UTIL with player: " .. game.Players.LocalPlayer.Name .. " Executor level: " .. ExecutorLevel .. " Util version: " .. Util.Version)
 end
 
-local function ResolveType(Config, path)
-	local stripped = path:gsub("^Config%.", "")
-	local current = Config
-	for key in stripped:gmatch("[^%.]+") do
-		if typeof(current) ~= "table" then return nil end
-		current = current[key]
-	end
-	return current
-end
-
 --[[
 LevelCheck
 Returns the executors level
@@ -110,6 +100,29 @@ Type = The thing we searching for (REQUIRED)
 CharacterName = The character we are searching the type for (REQUIRED)
 SpecificType = Find a specific value instead of a animation thats passed by Type (eg "Config.Sounds.Punch" yes with "")
 ]]--
+
+local function ResolveType(t, path)
+	local parts = path:split(".")
+	local current = t
+	for _, part in ipairs(parts) do
+		if typeof(current) ~= "table" then return nil end
+		if current[part] ~= nil then
+			current = current[part]
+		else
+			local found = false
+			for k, v in pairs(current) do
+				if tostring(k):lower() == part:lower() then
+					current = v
+					found = true
+					break
+				end
+			end
+			if not found then return nil end
+		end
+	end
+	return current
+end
+
 Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 	if 5 >= ExecutorLevel then
 		OutputDebug("Warning","Executor level too low to use require")
@@ -163,6 +176,7 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 		if not configModule then return end
 		local ok, Config = pcall(require, configModule)
 		if not ok or not Config then return end
+
 		if SpecificTypes then
 			for _, specificType in ipairs(SpecificTypes) do
 				local value = ResolveType(Config, specificType)
@@ -178,15 +192,19 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 			end
 			return
 		end
+
 		local Animations = Config.Animations or {}
 		for index, value in pairs(Animations) do
-			if table.find(Searching, index) then
-				if typeof(value) == "table" then
-					for _, v in ipairs(value) do
-						table.insert(Found, v)
+			for _, searchTerm in ipairs(Searching) do
+				if index:lower() == searchTerm:lower() then
+					if typeof(value) == "table" then
+						for _, v in ipairs(value) do
+							table.insert(Found, v)
+						end
+					else
+						table.insert(Found, value)
 					end
-				else
-					table.insert(Found, value)
+					break
 				end
 			end
 		end
