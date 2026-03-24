@@ -5,6 +5,7 @@ if game:GetService("RunService"):IsServer() then
 end
 
 local Util = {}
+Util.Version = "V.01"
 Util.DebugMode = true --// can set it manually via the script your using,i need it ON.
 
 local KillersFolder = game.ReplicatedStorage.Assets.Killers
@@ -50,7 +51,7 @@ UpdateLevel()
 
 
 if Util.DebugMode == true then
-	OutputDebug("Printing","Loading UTIL with player: " .. game.Players.LocalPlayer.Name .. " Executor level: " .. ExecutorLevel)
+	OutputDebug("Printing","Loading UTIL with player: " .. game.Players.LocalPlayer.Name .. " Executor level: " .. ExecutorLevel .. " Util version: " .. Util.Version)
 end
 
 local function ResolveType(Config, path)
