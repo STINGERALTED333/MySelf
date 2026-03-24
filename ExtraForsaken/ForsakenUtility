@@ -118,14 +118,12 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 		OutputDebug("Warning","Passed CharacterName or TYPE is not valid")
 		return {}
 	end
-
 	local Searching = {}
 	if typeof(Type) == "table" then
 		Searching = Type
 	else
 		table.insert(Searching, Type)
 	end
-
 	local SearchingCharacters = {}
 	if typeof(CharacterName) == "table" then
 		SearchingCharacters = CharacterName
@@ -148,42 +146,61 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 		table.insert(SearchingCharacters, CharacterName)
 	end
 
-	local Found = {}
+	local SpecificTypes = nil
+	if SpecificType then
+		if typeof(SpecificType) == "table" then
+			SpecificTypes = SpecificType
+		else
+			SpecificTypes = {SpecificType}
+		end
+	end
 
+	local Found = {}
 	local function searchConfig(instance)
 		if not instance then return end
 		local configModule = instance:FindFirstChild("Config")
 		if not configModule then return end
 		local ok, Config = pcall(require, configModule)
 		if not ok or not Config then return end
-		if SpecificType then
-			local value = ResolveType(Config, SpecificType)
-			if value ~= nil then
-				table.insert(Found, value)
+		if SpecificTypes then
+			for _, specificType in ipairs(SpecificTypes) do
+				local value = ResolveType(Config, specificType)
+				if value ~= nil then
+					if typeof(value) == "table" then
+						for _, v in ipairs(value) do
+							table.insert(Found, v)
+						end
+					else
+						table.insert(Found, value)
+					end
+				end
 			end
 			return
 		end
 		local Animations = Config.Animations or {}
 		for index, value in pairs(Animations) do
 			if table.find(Searching, index) then
-				table.insert(Found, value)
+				if typeof(value) == "table" then
+					for _, v in ipairs(value) do
+						table.insert(Found, v)
+					end
+				else
+					table.insert(Found, value)
+				end
 			end
 		end
 	end
-
 	local foldersToSearch = {
 		KillersFolder,
 		KillersSkinsFolder,
 		SurvivorsFolder,
 		SurvivorsSkinsFolder,
 	}
-
 	for _, characterName in ipairs(SearchingCharacters) do
 		for _, folder in ipairs(foldersToSearch) do
 			searchConfig(folder:FindFirstChild(characterName))
 		end
 	end
-
 	return Found
 end
 
