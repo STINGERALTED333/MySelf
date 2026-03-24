@@ -1,3 +1,10 @@
+local Sprint = require(game:GetService("ReplicatedStorage").Systems.Character.Game.Sprinting)
+Sprint.SprintSpeed = 26.5
+Sprint.StaminaLoss = 9.7
+Sprint.StaminaGain = 20.65
+Sprint.Speed = 12.7
+Sprint.MinStamina = -3
+
 local NoliCon = require(game:GetService("ReplicatedStorage").Assets.Killers.Noli.Config)
 NoliCon.VoidRushInitialTurnMult = 5.5
 NoliCon.VoidRushTurnSpeed = 1.35
