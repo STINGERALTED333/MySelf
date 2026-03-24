@@ -179,7 +179,8 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 
 		if SpecificTypes then
 			for _, specificType in ipairs(SpecificTypes) do
-				local value = ResolveType(Config, specificType)
+				local cleanedType = specificType:gsub("^[Cc]onfig%.", "")
+				local value = ResolveType(Config, cleanedType)
 				if value ~= nil then
 					if typeof(value) == "table" then
 						for _, v in ipairs(value) do
