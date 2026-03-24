@@ -1,0 +1,253 @@
+--// UTILITY
+if game:GetService("RunService"):IsServer() then
+	warn("blud WHAT are you DOING")
+	return
+end
+
+local Util = {}
+Util.DebugMode = true --// can set it manually via the script your using,i need it ON.
+
+local KillersFolder = game.ReplicatedStorage.Assets.Killers
+local SurvivorsFolder = game.ReplicatedStorage.Assets.Survivors
+local KillersSkinsFolder = game.ReplicatedStorage.Assets.Skins.Killers
+local SurvivorsSkinsFolder = game.ReplicatedStorage.Assets.Skins.Survivors
+
+local ExecutorLevel = 0
+
+local function OutputDebug(Scope,Message)
+	if Util.DebugMode == false then
+		return
+	end
+	if Scope and Message then
+		if Scope == "Printing" then
+			warn("[SCRIPT UTIL]: " .. Message)
+		elseif Scope == "Warning" then
+			warn("[SCRIPT UTIL]: " .. Message)
+		else
+			warn("[SCRIPT UTIL]: Can only PRINT and WARN with OutputDebug")
+		end
+	else
+		warn("[SCRIPT UTIL]: No scope or message input")
+	end
+end
+
+local function UpdateLevel()
+	local level = 0
+	if syn and syn.get_context then
+		level = syn.get_context()
+	elseif KRNL_INITIALIZED then
+		level = 8
+	elseif fluxus and fluxus.get_thread_identity then
+		level = fluxus.get_thread_identity()
+	elseif getcurrentthreadidentity then
+		level = getcurrentthreadidentity()
+	elseif getthreadidentity then
+		level = getthreadidentity()
+	end
+	ExecutorLevel = level
+end
+UpdateLevel()
+
+
+if Util.DebugMode == true then
+	OutputDebug("Printing","Loading UTIL with player: " .. game.Players.LocalPlayer.Name .. " Executor level: " .. ExecutorLevel)
+end
+
+local function ResolveType(Config, path)
+	local stripped = path:gsub("^Config%.", "")
+	local current = Config
+	for key in stripped:gmatch("[^%.]+") do
+		if typeof(current) ~= "table" then return nil end
+		current = current[key]
+	end
+	return current
+end
+
+--[[
+LevelCheck
+Returns the executors level
+]]--
+Util.LevelCheck = function()
+	local level = 0
+	if syn and syn.get_context then
+		level = syn.get_context()
+	elseif KRNL_INITIALIZED then
+		level = 8
+	elseif fluxus and fluxus.get_thread_identity then
+		level = fluxus.get_thread_identity()
+	elseif getcurrentthreadidentity then
+		level = getcurrentthreadidentity()
+	elseif getthreadidentity then
+		level = getthreadidentity()
+	end
+	return level
+end
+
+--[[
+Download
+Filepath = Where you want the file to be eg "Folder/Cheats"
+Filelink = Raw link of the file you want to download
+]]--
+Util.Download = function(Filepath, Filelink)
+	if not writefile then
+		OutputDebug("Warning","Executor lacking writefile")
+		return
+	end
+	local success, response = pcall(function()
+		return game:GetService("HttpService"):GetAsync(Filelink)
+	end)
+	if success then
+		writefile(Filepath, response)
+	else
+		OutputDebug("Warning","Download failed, response: " .. tostring(response))
+	end
+end
+
+--[[
+ReturnIDType
+Type = The thing we searching for (REQUIRED)
+CharacterName = The character we are searching the type for (REQUIRED)
+SpecificType = Find a specific value instead of a animation thats passed by Type (eg "Config.Sounds.Punch" yes with "")
+]]--
+Util.ReturnIDType = function(Type, CharacterName, SpecificType)
+	if 5 >= ExecutorLevel then
+		OutputDebug("Warning","Executor level too low to use require")
+		return {}
+	end
+	if not CharacterName or (typeof(Type) ~= "table" and typeof(Type) ~= "string") then
+		OutputDebug("Warning","Passed CharacterName or TYPE is not valid")
+		return {}
+	end
+
+	local Searching = {}
+	if typeof(Type) == "table" then
+		Searching = Type
+	else
+		table.insert(Searching, Type)
+	end
+
+	local SearchingCharacters = {}
+	if typeof(CharacterName) == "table" then
+		SearchingCharacters = CharacterName
+	elseif CharacterName == "All" then
+		for _, v in ipairs(KillersFolder:GetChildren()) do
+			table.insert(SearchingCharacters, v.Name)
+		end
+		for _, v in ipairs(SurvivorsFolder:GetChildren()) do
+			table.insert(SearchingCharacters, v.Name)
+		end
+	elseif CharacterName == "AllKillers" then
+		for _, v in ipairs(KillersFolder:GetChildren()) do
+			table.insert(SearchingCharacters, v.Name)
+		end
+	elseif CharacterName == "AllSurvivors" then
+		for _, v in ipairs(SurvivorsFolder:GetChildren()) do
+			table.insert(SearchingCharacters, v.Name)
+		end
+	else
+		table.insert(SearchingCharacters, CharacterName)
+	end
+
+	local Found = {}
+
+	local function searchConfig(instance)
+		if not instance then return end
+		local configModule = instance:FindFirstChild("Config")
+		if not configModule then return end
+		local ok, Config = pcall(require, configModule)
+		if not ok or not Config then return end
+		if SpecificType then
+			local value = ResolveType(Config, SpecificType)
+			if value ~= nil then
+				table.insert(Found, value)
+			end
+			return
+		end
+		local Animations = Config.Animations or {}
+		for index, value in pairs(Animations) do
+			if table.find(Searching, index) then
+				table.insert(Found, value)
+			end
+		end
+	end
+
+	local foldersToSearch = {
+		KillersFolder,
+		KillersSkinsFolder,
+		SurvivorsFolder,
+		SurvivorsSkinsFolder,
+	}
+
+	for _, characterName in ipairs(SearchingCharacters) do
+		for _, folder in ipairs(foldersToSearch) do
+			searchConfig(folder:FindFirstChild(characterName))
+		end
+	end
+
+	return Found
+end
+
+--[[
+Canuseability
+Name = Name of the ability you are checking
+Returns TRUE if you can use the ability, FALSE if you can't
+]]--
+Util.Canuseability = function(namein)
+	if game.Workspace:GetAttribute("CooldownsDisabled") then
+		return true
+	end
+	function GetCharges(ability)
+		local success, result = pcall(function()
+			local abilityContainer = game:GetService("Players").LocalPlayer.PlayerGui.MainUI.AbilityContainer
+			local chargeLabel = abilityContainer:FindFirstChild(ability) and abilityContainer[ability]:FindFirstChild("Charges")
+			if chargeLabel and chargeLabel.Text ~= "" then
+				return tonumber(chargeLabel.Text)
+			end
+			return 0
+		end)
+		if success then
+			return result or 0
+		else
+			return 0
+		end
+	end
+	local Actors, Status = require(game.ReplicatedStorage.Modules.Actors), require(game.ReplicatedStorage.Modules.Statuses)
+	local Me, Cooldown, ChargesMet = Actors.CurrentActors[game.Players.LocalPlayer], false, false
+	if Me and Me.Behavior and Me.Behavior.Abilities then
+		for abilityname, abilitytable in pairs(Me.Cooldowns) do
+			if abilityname == namein then
+				Cooldown = true
+			end
+		end
+		if not game.Workspace:GetAttribute("ChargesDisabled") then
+			for abilityname, abilitydata in pairs(Me.Behavior.Abilities) do
+				if abilityname == namein then
+					if abilitydata and abilitydata.Charges and GetCharges(namein) == 0 then
+						ChargesMet = false
+					else
+						ChargesMet = true
+					end
+				end
+			end
+		else
+			ChargesMet = true
+		end
+		local lchar = game.Players.LocalPlayer.Character
+		if lchar:GetAttribute("Ragdolling") or lchar:GetAttribute("AbilitiesDisabled") or lchar:GetAttribute("UsingAnimations") or lchar:FindFirstChildOfClass("Tool") then
+			OutputDebug("Warning","Can't use ability [1]: " .. tostring(namein))
+			return false
+		end
+		if ChargesMet and not Cooldown and game.Players.LocalPlayer.Character.PrimaryPart.Anchored == false and not Status:PlayerHasStatus(game.Players.LocalPlayer,"Helpless") and not Status:PlayerHasStatus(game.Players.LocalPlayer,"Stunned") then
+			OutputDebug("Warning","Can use ability: " .. tostring(namein))
+			return true
+		else
+			OutputDebug("Warning","Can't use ability [2]: " .. tostring(namein))
+			return false
+		end
+	end
+	OutputDebug("Warning","Can't use abilitys,Lacking me or behavior [3]")
+	return false
+end
+
+
+return Util
