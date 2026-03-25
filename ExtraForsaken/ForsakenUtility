@@ -177,6 +177,8 @@ local function ResolveType(t, path)
 		if typeof(current) ~= "table" then return nil end
 		if current[part] ~= nil then
 			current = current[part]
+		elseif current[tonumber(part)] ~= nil then
+			current = current[tonumber(part)]
 		else
 			local found = false
 			for k, v in pairs(current) do
@@ -191,7 +193,6 @@ local function ResolveType(t, path)
 	end
 	return current
 end
-
 
 local function OutputDebug(Scope,Message)
 	if Util.DebugMode == false then
@@ -593,33 +594,33 @@ ReturnTerrorRadius
 Returns a table of IDS that are the select terror radius
 Options : Layer1 , Layer2 , Layer3 , Chase
 ]]--
-Util.ReturnTerrorRadius = function(TerrorRadius : string)
+Util.ReturnTerrorRadius = function(TerrorRadius: string)
 	if typeof(TerrorRadius) ~= "string" then
-		OutputDebug("Warning","Input TerrorRadius is not a string")
+		OutputDebug("Warning", "Input TerrorRadius is not a string")
 		return
 	end
 
-	local Characters,Found = Util.ListCharacter("Killers",{}),{}
+	local Characters, Found = Util.ListCharacter("Killers", {}), {}
 
-	local function ReturnRadius(Character : string)
-		local result,e = pcall(function()
-			return Util.ForsakenDefaults.TerrorDistances[Character][TerrorRadius]
-		end)
-		return result or 60
+	local function ReturnRadius(Character: string)
+		local info = Util.ForsakenInfo.TerrorDistances[Character]
+			or Util.ForsakenDefaults.TerrorDistances["Default"]
+		local dist = info and info[TerrorRadius]
+		return dist or 60
 	end
 
 	for _, v in pairs(Characters) do
-		local LocalFound = {}
-
 		if KillersFolder:FindFirstChild(v) then
-			LocalFound = Util.ReturnIDType("idk",v,"Config.Sounds.TerrorRadiusThemes" .. ReturnRadius(v)) or {}
-		end
-
-		for _, t in pairs(LocalFound) do
-			table.insert(Found,t)
+			local radius = ReturnRadius(v)
+			-- fix: dot separator + tostring so ResolveType can split it
+			local path = "Config.Sounds.TerrorRadiusThemes." .. tostring(radius)
+			local LocalFound = Util.ReturnIDType("idk", v, {path}) or {}
+			for _, t in pairs(LocalFound) do
+				table.insert(Found, t)
+			end
 		end
 	end
-	
+
 	return Found or {}
 end
 
