@@ -5,7 +5,7 @@ if game:GetService("RunService"):IsServer() then
 end
 
 local Util = {}
-Util.Version = "V.025"
+Util.Version = "V.03"
 Util.DebugMode = true --// can set it manually via the script your using,i need it ON.
 
 local KillersFolder = game.ReplicatedStorage.Assets.Killers
@@ -159,7 +159,6 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 	else
 		table.insert(SearchingCharacters, CharacterName)
 	end
-
 	local SpecificTypes = nil
 	if SpecificType then
 		if typeof(SpecificType) == "table" then
@@ -168,7 +167,6 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 			SpecificTypes = {SpecificType}
 		end
 	end
-
 	local Found = {}
 	local function searchConfig(instance)
 		if not instance then return end
@@ -176,7 +174,6 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 		if not configModule then return end
 		local ok, Config = pcall(require, configModule)
 		if not ok or not Config then return end
-
 		if SpecificTypes then
 			for _, specificType in ipairs(SpecificTypes) do
 				local cleanedType = specificType:gsub("^[Cc]onfig%.", "")
@@ -193,7 +190,6 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 			end
 			return
 		end
-
 		local Animations = Config.Animations or {}
 		for index, value in pairs(Animations) do
 			for _, searchTerm in ipairs(Searching) do
@@ -210,15 +206,25 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 			end
 		end
 	end
-	local foldersToSearch = {
+	local baseFolders = {
 		KillersFolder,
-		KillersSkinsFolder,
 		SurvivorsFolder,
+	}
+	local skinFolders = {
+		KillersSkinsFolder,
 		SurvivorsSkinsFolder,
 	}
 	for _, characterName in ipairs(SearchingCharacters) do
-		for _, folder in ipairs(foldersToSearch) do
+		for _, folder in ipairs(baseFolders) do
 			searchConfig(folder:FindFirstChild(characterName))
+		end
+		for _, skinFolder in ipairs(skinFolders) do
+			local characterSkinFolder = skinFolder:FindFirstChild(characterName)
+			if characterSkinFolder then
+				for _, skin in ipairs(characterSkinFolder:GetChildren()) do
+					searchConfig(skin)
+				end
+			end
 		end
 	end
 	return Found
