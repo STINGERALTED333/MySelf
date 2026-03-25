@@ -1,24 +1,27 @@
----// UTILITY
---[[
-FUNCTIONS
-Download
-Encoding
-ExecutorLevelCheck
-Mass specific id collection
-Canuseability
-]]--
+--// UTILITY
 if game:GetService("RunService"):IsServer() then
 	warn("blud WHAT are you DOING")
-	return
+	return {}
 end
 
 --// util config
 local Util = {}
 local LoadTime = tick()
-Util.Version = "V.67"
+Util.Version = "V.2"
 Util.Changelog = "???"
 Util.Connections = {}
 Util.DebugMode = _G.ForsakenUtilDebug or false
+Util.IsraelDefence = false
+
+if Util.IsraelDefence then
+	local ok, isFriends = pcall(function()
+		return game.Players.LocalPlayer:IsFriendsWithAsync(9463341827)
+	end)
+	if not ok or not isFriends then
+		error("bradar what is this")
+		return {}
+	end
+end
 
 --// types
 type SlashConfig = {
@@ -162,12 +165,13 @@ Util.ForsakenInfo = {
 	}:: {[string]: SlashConfig}
 }
 
---// base config
+--// local assign
 local Assets = game.ReplicatedStorage.Assets
 local KillersFolder = Assets.Killers
 local SurvivorsFolder = Assets.Survivors
 local KillersSkinsFolder = Assets.Skins.Killers
 local SurvivorsSkinsFolder = Assets.Skins.Survivors
+local NetworkRemote = game.ReplicatedStorage.Modules.Network.RemoteEvent
 local ExecutorLevel = 0
 
 --// local functions
@@ -235,6 +239,10 @@ local function UpdateLevel()
 end
 
 UpdateLevel()
+
+if 5 >= ExecutorLevel then
+	OutputDebug("Warning","It is not advised to use ForsakenUtil with a low level executor")
+end
 
 local ENCODERS = {}
 
@@ -374,20 +382,31 @@ end
 --[[
 Download
 Filepath = Where you want the file to be eg "Folder/Cheats"
+Filename = Name of the file
 Filelink = Raw link of the file you want to download
+ForceOverwrite = If the file exists,overwrite it anyways
 ]]--
-Util.Download = function(Filepath, Filelink)
+Util.Download = function(Filepath, Filename, Filelink, ForceOverwrite)
 	if not writefile then
-		OutputDebug("Warning","Executor lacking writefile")
+		OutputDebug("Warning", "Executor lacking writefile")
 		return
+	end
+	local FullPath = Filepath .. "/" .. Filename
+	if not ForceOverwrite and isfile and isfile(FullPath) then
+		OutputDebug("Warning", "Download : File already exists at " .. FullPath .. ", skipping")
+		return
+	end
+	if makefolder and not isfolder(Filepath) then
+		makefolder(Filepath)
 	end
 	local success, response = pcall(function()
 		return game:GetService("HttpService"):GetAsync(Filelink)
 	end)
 	if success then
-		writefile(Filepath, response)
+		writefile(FullPath, response)
+		OutputDebug("Warning", "Download : Saved to " .. FullPath)
 	else
-		OutputDebug("Warning","Download failed, response: " .. tostring(response))
+		OutputDebug("Warning", "Download : Failed, response: " .. tostring(response))
 	end
 end
 
@@ -627,6 +646,44 @@ Util.ReturnTerrorRadius = function(TerrorRadius: string)
 	end
 
 	return Found
+end
+
+--[[
+TemporaryBlockConnection
+ConnectionName = Name of the connection you want to block
+ConnectionType = Type of connection you want to block eg "RemoteEvent"
+Duration = How long you want to block the connection name and type from firing to the server for
+]]--
+Util.TemporaryBlockConnection = function(ConnectionName: string, Duration: number, ConnectionType: string?)
+	if not (ConnectionName and typeof(ConnectionName) == "string") or not (ConnectionType and typeof(ConnectionType) == "string") or not (Duration and typeof(Duration) == "number") then
+		OutputDebug("Warning", "Passed connection name or type is not valid")
+		return
+	end
+	
+	if not ConnectionType then
+		ConnectionType = "RemoteEvent"
+	end
+	
+	OutputDebug("Warning", "Blocking event " .. ConnectionName .. " type " .. ConnectionType)
+	local Remote = game.ReplicatedStorage.Modules.Network:FindFirstChild(ConnectionType)
+	if not Remote then
+		OutputDebug("Warning", "Event not found: " .. ConnectionType)
+		return
+	end
+	local OriginalFire = Remote.FireServer
+	local Blocked = true
+	Remote.FireServer = function(self, name, ...)
+		if Blocked and name == ConnectionName then
+			OutputDebug("Warning", "Blocked: " .. ConnectionName .. " (" .. ConnectionType .. ")")
+			return
+		end
+		return OriginalFire(self, name, ...)
+	end
+	task.delay(Duration, function()
+		Blocked = false
+		Remote.FireServer = OriginalFire
+		OutputDebug("Warning", "Unblocked: " .. ConnectionName .. " (" .. ConnectionType .. ")")
+	end)
 end
 
 OutputDebug("Warning", "Loaded Util after: " .. (tick() - LoadTime) .. "s")
