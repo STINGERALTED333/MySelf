@@ -5,7 +5,7 @@ if game:GetService("RunService"):IsServer() then
 end
 
 local Util = {}
-Util.Version = "V.03"
+Util.Version = "V.035"
 Util.DebugMode = true --// can set it manually via the script your using,i need it ON.
 
 local KillersFolder = game.ReplicatedStorage.Assets.Killers
@@ -168,6 +168,16 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 		end
 	end
 	local Found = {}
+	local function flattenInto(tbl, target)
+		for _, v in ipairs(tbl) do
+			if typeof(v) == "table" then
+				flattenInto(v, target)
+			else
+				table.insert(target, v)
+			end
+		end
+	end
+
 	local function searchConfig(instance)
 		if not instance then return end
 		local configModule = instance:FindFirstChild("Config")
@@ -180,9 +190,7 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 				local value = ResolveType(Config, cleanedType)
 				if value ~= nil then
 					if typeof(value) == "table" then
-						for _, v in ipairs(value) do
-							table.insert(Found, v)
-						end
+						flattenInto(value, Found)
 					else
 						table.insert(Found, value)
 					end
@@ -195,9 +203,7 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 			for _, searchTerm in ipairs(Searching) do
 				if index:lower() == searchTerm:lower() then
 					if typeof(value) == "table" then
-						for _, v in ipairs(value) do
-							table.insert(Found, v)
-						end
+						flattenInto(value, Found)
 					else
 						table.insert(Found, value)
 					end
