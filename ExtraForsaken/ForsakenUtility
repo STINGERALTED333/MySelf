@@ -624,7 +624,7 @@ Util.ReturnTerrorRadius = function(TerrorRadius: string)
 	return Found or {}
 end
 
-OutputDebug("Warning","Loaded Util after: " .. tick() - LoadTime .. "s")
+OutputDebug("Warning", "Loaded Util after: " .. (tick() - LoadTime) .. "s")
 OutputDebug("Printing","Returning the Util module")
 
 return Util
