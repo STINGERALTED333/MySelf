@@ -7,7 +7,7 @@ end
 --// util config
 local Util = {}
 local LoadTime = tick()
-Util.Version = "V.25"
+Util.Version = "V.2"
 Util.Changelog = "???"
 Util.Connections = {}
 Util.DebugMode = _G.ForsakenUtilDebug or false
@@ -654,41 +654,48 @@ ConnectionName = Name of the connection you want to block
 ConnectionType = Type of connection you want to block eg "RemoteEvent"
 Duration = How long you want to block the connection name and type from firing to the server for
 ]]--
+local BypassList = {}  
 Util.TemporaryBlockConnection = function(ConnectionName: string, Duration: number, ConnectionType: string?)
 	if not (ConnectionName and typeof(ConnectionName) == "string")
 		or not (Duration and typeof(Duration) == "number") then
 		OutputDebug("Warning", "Passed connection name or type is not valid")
 		return
 	end
-
 	ConnectionType = ConnectionType or "RemoteEvent"
-
 	OutputDebug("Warning", "Blocking event " .. ConnectionName .. " type " .. ConnectionType)
-
 	local Remote = game.ReplicatedStorage.Modules.Network:FindFirstChild(ConnectionType)
 	if not Remote then
 		OutputDebug("Warning", "Event not found: " .. ConnectionType)
 		return
 	end
-
 	local Blocked = true
-
 	local OriginalNamecall
 	OriginalNamecall = hookmetamethod(game, "__namecall", function(self, ...)
 		if self == Remote and getnamecallmethod() == "FireServer" then
 			local args = {...}
-			if Blocked and args[1] == ConnectionName then
+			if Blocked and args[1] == ConnectionName and not BypassList[ConnectionName] then
 				OutputDebug("Warning", "Blocked: " .. ConnectionName)
 				return
 			end
 		end
 		return OriginalNamecall(self, ...)
 	end)
-
 	task.delay(Duration, function()
 		Blocked = false
 		OutputDebug("Warning", "Unblocked: " .. ConnectionName)
 	end)
+end
+
+Util.TemporaryFireConnection = function(ConnectionName: string, ConnectionType: string?, ...)
+	ConnectionType = ConnectionType or "RemoteEvent"
+	local Remote = game.ReplicatedStorage.Modules.Network:FindFirstChild(ConnectionType)
+	if not Remote then
+		OutputDebug("Warning", "TemporaryFireConnection : Event not found: " .. ConnectionType)
+		return
+	end
+	BypassList[ConnectionName] = true
+	Remote:FireServer(ConnectionName, ...)
+	BypassList[ConnectionName] = nil
 end
 
 OutputDebug("Warning", "Loaded Util after: " .. (tick() - LoadTime) .. "s")
