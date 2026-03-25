@@ -222,6 +222,8 @@ function GetClosestTargetttt()
 		end
 		local playerPosition = playerCharacter.HumanoidRootPart.Position
 		for _, survivor in ipairs(targetFolder:GetChildren()) do
+        local survivorPlayer = game.Players:GetPlayerFromCharacter(survivor)
+        if not survivorPlayer then continue end
 			if survivor.Parent == targetFolder then
 				local isAlive = IsAlive(survivor)
 				local isSelf = (survivor == playerCharacter)
