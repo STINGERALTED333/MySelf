@@ -1,4 +1,4 @@
---// UTILITY
+---// UTILITY
 --[[
 FUNCTIONS
 Download
@@ -464,7 +464,11 @@ Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 				local value = ResolveType(Config, cleanedType)
 				if value ~= nil then
 					if typeof(value) == "table" then
-						flattenInto(value, Found)
+						if value.ID then
+							table.insert(Found, value.ID)
+						else
+							flattenInto(value, Found)
+						end
 					else
 						table.insert(Found, value)
 					end
@@ -598,7 +602,7 @@ Options : Layer1 , Layer2 , Layer3 , Chase
 Util.ReturnTerrorRadius = function(TerrorRadius: string)
 	if typeof(TerrorRadius) ~= "string" then
 		OutputDebug("Warning", "Input TerrorRadius is not a string")
-		return
+		return {}
 	end
 
 	local Characters, Found = Util.ListCharacter("Killers", {}), {}
@@ -606,22 +610,23 @@ Util.ReturnTerrorRadius = function(TerrorRadius: string)
 	local function ReturnRadius(Character: string)
 		local info = Util.ForsakenInfo.TerrorDistances[Character]
 			or Util.ForsakenDefaults.TerrorDistances["Default"]
-		local dist = info and info[TerrorRadius]
-		return dist or 60
+		return info and info[TerrorRadius] or 60
 	end
 
 	for _, v in pairs(Characters) do
 		if KillersFolder:FindFirstChild(v) then
 			local radius = ReturnRadius(v)
-			local path = "Config.Sounds.TerrorRadiusThemes." .. tostring(radius)
-			local LocalFound = Util.ReturnIDType("idk", v, {path}) or {}
+			local path = "Sounds.TerrorRadiusThemes." .. tostring(radius)
+			local LocalFound = Util.ReturnIDType("idk", v, {"Config." .. path}) or {}
 			for _, t in pairs(LocalFound) do
-				table.insert(Found, t)
+				if typeof(t) == "string" and t:find("rbxassetid") then
+					table.insert(Found, t)
+				end
 			end
 		end
 	end
 
-	return Found or {}
+	return Found
 end
 
 OutputDebug("Warning", "Loaded Util after: " .. (tick() - LoadTime) .. "s")
