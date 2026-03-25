@@ -1,19 +1,54 @@
 --// UTILITY
+--[[
+FUNCTIONS
+Download
+Encoding
+ExecutorLevelCheck
+Mass specific id collection
+Canuseability
+]]--
 if game:GetService("RunService"):IsServer() then
 	warn("blud WHAT are you DOING")
 	return
 end
 
+--// util config
 local Util = {}
-Util.Version = "V.035"
+Util.Version = "V.05"
+Util.Changelog = "wow you can encode stuff now coooool"
+Util.Connections = {}
 Util.DebugMode = _G.ForsakenUtilDebug or false --// can set it manually via the script your using
 
+--// base config
 local KillersFolder = game.ReplicatedStorage.Assets.Killers
 local SurvivorsFolder = game.ReplicatedStorage.Assets.Survivors
 local KillersSkinsFolder = game.ReplicatedStorage.Assets.Skins.Killers
 local SurvivorsSkinsFolder = game.ReplicatedStorage.Assets.Skins.Survivors
-
 local ExecutorLevel = 0
+
+--// local functions
+local function ResolveType(t, path)
+	local parts = path:split(".")
+	local current = t
+	for _, part in ipairs(parts) do
+		if typeof(current) ~= "table" then return nil end
+		if current[part] ~= nil then
+			current = current[part]
+		else
+			local found = false
+			for k, v in pairs(current) do
+				if tostring(k):lower() == part:lower() then
+					current = v
+					found = true
+					break
+				end
+			end
+			if not found then return nil end
+		end
+	end
+	return current
+end
+
 
 local function OutputDebug(Scope,Message)
 	if Util.DebugMode == false then
@@ -49,9 +84,84 @@ local function UpdateLevel()
 end
 UpdateLevel()
 
+local ENCODERS = {}
+
+local function encodeValue(Value)
+	local encoder = ENCODERS[typeof(Value)]
+	if not encoder then
+		OutputDebug("Invalid value type: " .. typeof(Value))
+		return nil
+	end
+	return encoder(Value)
+end
+
+ENCODERS = {
+	string = function(s)
+		local b = buffer.create(5 + #s)
+		buffer.writeu8(b, 0, 3)
+		buffer.writeu32(b, 1, #s)
+		buffer.writestring(b, 5, s)
+		return b
+	end,
+	number = function(n)
+		local b = buffer.create(9)
+		buffer.writeu8(b, 0, 2)
+		buffer.writef64(b, 1, n)
+		return b
+	end,
+	boolean = function(v)
+		local b = buffer.create(2)
+		buffer.writeu8(b, 0, 4)
+		buffer.writeu8(b, 1, v and 1 or 0)
+		return b
+	end,
+	table = function(t)
+		local encoded = {}
+		for k, v in pairs(t) do
+			local result = encodeValue(v)
+			if result then
+				encoded[k] = result
+			else
+				OutputDebug("Skipping key '" .. tostring(k) .. "' — unsupported type: " .. typeof(v))
+			end
+		end
+		return encoded
+	end,
+}
 
 if Util.DebugMode == true then
 	OutputDebug("Printing","Loading UTIL with player: " .. game.Players.LocalPlayer.Name .. " Executor level: " .. ExecutorLevel .. " Util version: " .. Util.Version)
+end
+
+--// util functions
+
+--[[
+Encode a specific type
+example:
+local args = {
+    "ExecuteCommand",
+    {
+        Util.EncodeType("GiveStatus"),
+    }
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+]]--
+Util.EncodeType = function(Value)
+	OutputDebug("Encoding " .. typeof(Value))
+	return encodeValue(Value)
+end
+
+--[[
+Encode arguments
+example:
+local args = {
+    "ExecuteCommand",
+    Util.EncodeArgs("GiveStatus", "WatchYouB6", "Resistance", 10, 99999)
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+]]--
+Util.EncodeArgs = function(...)
+	return Util.EncodeType({...})
 end
 
 --[[
@@ -100,29 +210,6 @@ Type = The thing we searching for (REQUIRED)
 CharacterName = The character we are searching the type for (REQUIRED)
 SpecificType = Find a specific value instead of a animation thats passed by Type (eg "Config.Sounds.Punch" yes with "")
 ]]--
-
-local function ResolveType(t, path)
-	local parts = path:split(".")
-	local current = t
-	for _, part in ipairs(parts) do
-		if typeof(current) ~= "table" then return nil end
-		if current[part] ~= nil then
-			current = current[part]
-		else
-			local found = false
-			for k, v in pairs(current) do
-				if tostring(k):lower() == part:lower() then
-					current = v
-					found = true
-					break
-				end
-			end
-			if not found then return nil end
-		end
-	end
-	return current
-end
-
 Util.ReturnIDType = function(Type, CharacterName, SpecificType)
 	if 5 >= ExecutorLevel then
 		OutputDebug("Warning","Executor level too low to use require")
@@ -298,5 +385,22 @@ Util.Canuseability = function(namein)
 	return false
 end
 
+--[[
+UseAbility
+Uses the input ability name
+]]--
+Util.UseAbility = function(AbilityName)
+	if typeof(AbilityName) ~= "string" then
+		OutputDebug("Warning","Input AbilityName is not a string")
+		return
+	end
+	local args = {
+		"UseActorAbility",
+		{
+			Util.EncodeType(AbilityName)
+		}
+	}
+	game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+end
 
 return Util
