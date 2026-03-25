@@ -6,7 +6,7 @@ end
 
 local Util = {}
 Util.Version = "V.035"
-Util.DebugMode = true --// can set it manually via the script your using,i need it ON.
+Util.DebugMode = _G.ForsakenUtilDebug or false --// can set it manually via the script your using
 
 local KillersFolder = game.ReplicatedStorage.Assets.Killers
 local SurvivorsFolder = game.ReplicatedStorage.Assets.Survivors
