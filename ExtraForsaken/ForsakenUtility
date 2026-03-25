@@ -14,16 +14,159 @@ end
 
 --// util config
 local Util = {}
-Util.Version = "V.05"
-Util.Changelog = "wow you can encode stuff now coooool"
+Util.Version = "V.1"
+Util.Changelog = "???"
 Util.Connections = {}
-Util.DebugMode = _G.ForsakenUtilDebug or false --// can set it manually via the script your using
+Util.DebugMode = _G.ForsakenUtilDebug or false
+
+--// types
+type SlashConfig = {
+	Size: Vector3,
+	CFrameOffset: CFrame,
+	Damage: number,
+	Knockback: number,
+	HitMultiple: boolean,
+	Windup: number,
+	Linger: number,
+}
+
+type TerrorDistances = {
+	Layer1: number,
+	Layer2: number,
+	Layer3: number,
+	Chase: number,
+	SensetiveChase: boolean?
+}
+
+--// defaults for other scripts to read
+
+Util.ForsakenDefaults = {
+	TerrorDistances = {
+		["Default"] = {
+			["Layer1"] = 60,
+			["Layer2"] = 40,
+			["Layer3"] = 20,
+			["Chase"] = 6
+		}:: TerrorDistances,
+	}:: {[string]: TerrorDistances},
+	SlashConfigs = {
+		["Default"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -1.75),
+			Damage = 20,
+			Knockback = 2,
+			HitMultiple = true,
+			Windup = 0.2,
+			Linger = 0.25
+		}:: SlashConfig,
+	}:: {[string]: SlashConfig}
+}
+
+Util.ForsakenInfo = {
+	TerrorDistances = {
+		["Noli"] = {
+			["Layer1"] = 80,
+			["Layer2"] = 40,
+			["Layer3"] = 20,
+			["Chase"] = 6
+		}:: TerrorDistances,
+		["Slasher"] = {
+			["Layer1"] = 45,
+			["Layer2"] = 30,
+			["Layer3"] = 15,
+			["Chase"] = 6
+		}:: TerrorDistances,
+		["Sixer"] = {
+			["Layer1"] = 90,
+			["Layer2"] = 60,
+			["Layer3"] = 30,
+			["Chase"] = 9
+		}:: TerrorDistances,
+		["Nosferatu"] = {
+			["Layer1"] = 60,
+			["Layer2"] = 45,
+			["Layer3"] = 20,
+			["Chase"] = 10
+		}:: TerrorDistances,
+		["JohnDoe"] = Util.ForsakenDefaults.TerrorDistances.Default:: TerrorDistances,
+		["1x1x1x1"] = Util.ForsakenDefaults.TerrorDistances.Default:: TerrorDistances,
+		["c00lkidd"] = Util.ForsakenDefaults.TerrorDistances.Default:: TerrorDistances,
+		["Other"] = Util.ForsakenDefaults.TerrorDistances.Default:: TerrorDistances,
+	}:: {[string]: TerrorDistances},
+	SlashConfigs = {
+		["Slasher"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -1.75),
+			Damage = 20,
+			Knockback = 2,
+			HitMultiple = true,
+			Windup = 0.2,
+			Linger = 0.25
+		}:: SlashConfig,
+		["1x1x1x1"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -1.75),
+			Damage = 20,
+			Knockback = 2,
+			HitMultiple = false,
+			Windup = 0.4,
+			Linger = 0.25
+		}:: SlashConfig,
+		["Nosferatu"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -1.75),
+			Damage = 24,
+			Knockback = 2,
+			HitMultiple = false,
+			Windup = 0.3,
+			Linger = 0.3
+		}:: SlashConfig,
+		["JohnDoe"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -1.75),
+			Damage = 28,
+			Knockback = 2,
+			HitMultiple = false,
+			Windup = 0.4,
+			Linger = 0.25
+		}:: SlashConfig,
+		["Noli"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -2.25),
+			Damage = 25,
+			Knockback = 2,
+			HitMultiple = false,
+			Windup = 0.35,
+			Linger = 0.25
+		}:: SlashConfig,
+		["c00lkidd"] = {
+			Size = Vector3.new(4.5 , 6 , 5),
+			CFrameOffset = CFrame.new(0 , 0 , -2),
+			Damage = 26.5,
+			Knockback = 2,
+			HitMultiple = false,
+			Windup = 0.1,
+			Linger = 0.3
+		}:: SlashConfig,
+		["Sixer"] = {
+			Size = Vector3.new(5 , 7 , 9.25),
+			CFrameOffset = CFrame.new(0 , -1 , -3.75),
+			Damage = 20,
+			Knockback = 2,
+			HitMultiple = true,
+			Windup = 0.3,
+			Linger = 0.25
+		}:: SlashConfig,
+		["Other"] = Util.ForsakenDefaults.SlashConfigs.Default:: SlashConfig
+	}:: {[string]: SlashConfig}
+}
 
 --// base config
-local KillersFolder = game.ReplicatedStorage.Assets.Killers
-local SurvivorsFolder = game.ReplicatedStorage.Assets.Survivors
-local KillersSkinsFolder = game.ReplicatedStorage.Assets.Skins.Killers
-local SurvivorsSkinsFolder = game.ReplicatedStorage.Assets.Skins.Survivors
+local Assets = game.ReplicatedStorage.Assets
+local KillersFolder = Assets.Killers
+local SurvivorsFolder = Assets.Survivors
+local KillersSkinsFolder = Assets.Skins.Killers
+local SurvivorsSkinsFolder = Assets.Skins.Survivors
 local ExecutorLevel = 0
 
 --// local functions
@@ -54,6 +197,12 @@ local function OutputDebug(Scope,Message)
 	if Util.DebugMode == false then
 		return
 	end
+	
+	if Scope and not Message then
+		Message = Scope
+		Scope = "Warning"
+	end
+	
 	if Scope and Message then
 		if Scope == "Printing" then
 			warn("[SCRIPT UTIL]: " .. Message)
@@ -82,6 +231,7 @@ local function UpdateLevel()
 	end
 	ExecutorLevel = level
 end
+
 UpdateLevel()
 
 local ENCODERS = {}
@@ -162,6 +312,41 @@ game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Netwo
 ]]--
 Util.EncodeArgs = function(...)
 	return Util.EncodeType({...})
+end
+
+--[[
+ListCharacter
+Returns a list of the current characters in the game,Can exclude certain characters
+]]--
+Util.ListCharacter = function(Type: string, Exclusion: {string}?)
+	local ExcludeList,Found = {},{}
+	
+	if typeof(Type) ~= "string" then
+		OutputDebug("Warning","ListCharacter : Type passed is not a string")
+		return
+	end
+	
+	if Exclusion and (typeof(Exclusion) ~= "table") then
+		OutputDebug("Warning","ListCharacter : Exclusion passed is not a table")
+		return
+	elseif Exclusion then
+		for _, v in ipairs(Exclusion) do
+			ExcludeList[v] = true
+		end
+	end
+	
+	local TypeFolder = Assets:FindFirstChild(Type)
+	if TypeFolder then
+		for _, character in pairs(TypeFolder:GetChildren()) do
+			if character:IsA("Folder") and not ExcludeList[character.Name] then
+				table.insert(Found,character.Name)
+			end
+		end
+		return Found or {}
+	else
+		OutputDebug("Warning","ListCharacter : Could not find Type passed")
+		return Found or {}
+	end
 end
 
 --[[
@@ -389,7 +574,7 @@ end
 UseAbility
 Uses the input ability name
 ]]--
-Util.UseAbility = function(AbilityName)
+Util.UseAbility = function(AbilityName : string)
 	if typeof(AbilityName) ~= "string" then
 		OutputDebug("Warning","Input AbilityName is not a string")
 		return
@@ -403,4 +588,40 @@ Util.UseAbility = function(AbilityName)
 	game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
 end
 
+--[[
+ReturnTerrorRadius
+Returns a table of IDS that are the select terror radius
+Options : Layer1 , Layer2 , Layer3 , Chase
+]]--
+Util.ReturnTerrorRadius = function(TerrorRadius : string)
+	if typeof(TerrorRadius) ~= "string" then
+		OutputDebug("Warning","Input TerrorRadius is not a string")
+		return
+	end
+
+	local Characters,Found = Util.ListCharacter("Killers",{}),{}
+
+	local function ReturnRadius(Character : string)
+		local result,e = pcall(function()
+			return Util.ForsakenDefaults.TerrorDistances[Character][TerrorRadius]
+		end)
+		return result or 60
+	end
+
+	for _, v in pairs(Characters) do
+		local LocalFound = {}
+
+		if KillersFolder:FindFirstChild(v) then
+			LocalFound = Util.ReturnIDType("idk",v,"Config.Sounds.TerrorRadiusThemes" .. ReturnRadius(v)) or {}
+		end
+
+		for _, t in pairs(LocalFound) do
+			table.insert(Found,t)
+		end
+	end
+	
+	return Found or {}
+end
+
+OutputDebug("Printing","Returning the Util module")
 return Util
