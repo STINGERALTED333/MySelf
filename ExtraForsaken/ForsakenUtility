@@ -15,7 +15,7 @@ end
 --// util config
 local Util = {}
 local LoadTime = tick()
-Util.Version = "V.15"
+Util.Version = "V.67"
 Util.Changelog = "???"
 Util.Connections = {}
 Util.DebugMode = _G.ForsakenUtilDebug or false
