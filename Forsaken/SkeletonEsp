@@ -1,126 +1,122 @@
---  optimized very very trust
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 
 local LocalPlayer = Players.LocalPlayer
-local Connections = {}
-local Drawings = {} -- tab for players
+local Drawings = {}
+local CharacterConnections = {}
+local MainLoop = nil
 
--- skelet
-local function CreateSkeletonLines(character)
+local LINES = {
+    {"Head",  "Torso"},
+    {"Torso", "Left Arm"},
+    {"Torso", "Right Arm"},
+    {"Torso", "Left Leg"},
+    {"Torso", "Right Leg"},
+}
+
+local function CreateSkeletonLines()
     local drawings = {}
-    
-    -- Head-Torso, Torso-Left Arm, Torso-Right Arm, Torso-Left Leg, Torso-Right Leg(connections)
-    local lines = {
-        {part1 = "Head", part2 = "Torso"},
-        {part1 = "Torso", part2 = "Left Arm"},
-        {part1 = "Torso", part2 = "Right Arm"},
-        {part1 = "Torso", part2 = "Left Leg"},
-        {part1 = "Torso", part2 = "Right Leg"}
-    }
-    
-    for _, lineData in ipairs(lines) do
+    for _, pair in ipairs(LINES) do
         local line = Drawing.new("Line")
-        line.Color = Color3.new(1, 1, 1) -- cum color
-        line.Thickness = 2 -- idk change if uwant more fatty
+        line.Color      = Color3.new(1, 1, 1)
+        line.Thickness  = 2
         line.Transparency = 1
-        line.Visible = false
-        table.insert(drawings, {line = line, data = lineData})
+        line.Visible    = false
+        table.insert(drawings, {line = line, p1 = pair[1], p2 = pair[2]})
     end
-    
     return drawings
 end
 
--- update for 1 play
-local function UpdateSkeleton(player)
-    if player == LocalPlayer or not player.Character or not player.Character:FindFirstChild("Humanoid") then
-        return
-    end
-    
-    local character = player.Character
-    local humanoid = character.Humanoid
-    
-    -- if r6
-    if not character:FindFirstChild("Torso") or humanoid.RigType ~= Enum.HumanoidRigType.R6 then
-        return
-    end
-    
-    -- lines
-    if not Drawings[player] then
-        Drawings[player] = CreateSkeletonLines(character)
-    end
-    
-    local drawings = Drawings[player]
-    local onScreen = false -- culling
-    
-    for _, drawData in ipairs(drawings) do
-        local line = drawData.line
-        local part1Name, part2Name = drawData.data.part1, drawData.data.part2
-        local part1 = character:FindFirstChild(part1Name)
-        local part2 = character:FindFirstChild(part2Name)
-        
-        if part1 and part2 then
-            local pos1, onScreen1 = Camera:WorldToViewportPoint(part1.Position)
-            local pos2, onScreen2 = Camera:WorldToViewportPoint(part2.Position)
-            
-            -- Culling too
-            if onScreen1 and onScreen2 then
-                line.From = Vector2.new(pos1.X, pos1.Y)
-                line.To = Vector2.new(pos2.X, pos2.Y)
-                line.Visible = true
-                onScreen = true
-            else
-                line.Visible = false
-            end
-        else
-            line.Visible = false
-        end
-    end
-    
-    -- optimize
-    if not onScreen then
-        for _, drawData in ipairs(drawings) do
-            drawData.line.Visible = false
-        end
-    end
-end
-
-local function OnPlayerRemoving(player)
+local function ClearDrawings(player)
     if Drawings[player] then
-        for _, drawData in ipairs(Drawings[player]) do
-            drawData.line:Remove()
+        for _, d in ipairs(Drawings[player]) do
+            d.line:Remove()
         end
         Drawings[player] = nil
     end
-    if Connections[player] then
-        Connections[player]:Disconnect()
-        Connections[player] = nil
+end
+
+local function UpdateSkeleton(player)
+    local character = player.Character
+    if not character then
+        ClearDrawings(player)
+        return
+    end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid or humanoid.RigType ~= Enum.HumanoidRigType.R6 then
+        ClearDrawings(player)
+        return
+    end
+
+    if not character:FindFirstChild("Torso") then
+        ClearDrawings(player)
+        return
+    end
+
+    -- recreate if missing (respawn case)
+    if not Drawings[player] then
+        Drawings[player] = CreateSkeletonLines()
+    end
+
+    for _, d in ipairs(Drawings[player]) do
+        local p1 = character:FindFirstChild(d.p1)
+        local p2 = character:FindFirstChild(d.p2)
+
+        if p1 and p2 then
+            local s1, v1 = Camera:WorldToViewportPoint(p1.Position)
+            local s2, v2 = Camera:WorldToViewportPoint(p2.Position)
+
+            if v1 and v2 and s1.Z > 0 then
+                d.line.From    = Vector2.new(s1.X, s1.Y)
+                d.line.To      = Vector2.new(s2.X, s2.Y)
+                d.line.Visible = true
+            else
+                d.line.Visible = false
+            end
+        else
+            d.line.Visible = false
+        end
     end
 end
 
--- all players
-for _, player in ipairs(Players:GetPlayers()) do
-    if player ~= LocalPlayer then
-        Connections[player] = RunService.Heartbeat:Connect(function()
-            UpdateSkeleton(player)
-        end)
+local function WatchPlayer(player)
+    if player == LocalPlayer then return end
+
+    -- handle respawns: recreate drawings on new character
+    CharacterConnections[player] = player.CharacterAdded:Connect(function()
+        ClearDrawings(player) -- wipe old lines, UpdateSkeleton will recreate
+    end)
+end
+
+local function UnwatchPlayer(player)
+    ClearDrawings(player)
+    if CharacterConnections[player] then
+        CharacterConnections[player]:Disconnect()
+        CharacterConnections[player] = nil
     end
 end
 
--- new players
-Players.PlayerAdded:Connect(function(player)
-    if player ~= LocalPlayer then
-        Connections[player] = RunService.Heartbeat:Connect(function()
+MainLoop = RunService.Heartbeat:Connect(function()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
             UpdateSkeleton(player)
-        end)
+        end
     end
 end)
 
-Players.PlayerRemoving:Connect(OnPlayerRemoving)
+for _, player in ipairs(Players:GetPlayers()) do
+    WatchPlayer(player)
+end
 
-game:BindToClose(function()
+Players.PlayerAdded:Connect(WatchPlayer)
+Players.PlayerRemoving:Connect(UnwatchPlayer)
+
+LocalPlayer.CharacterRemoving:Connect(function()
     for _, player in ipairs(Players:GetPlayers()) do
-        OnPlayerRemoving(player)
+        if player ~= LocalPlayer then
+            ClearDrawings(player)
+        end
     end
 end)
