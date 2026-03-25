@@ -655,34 +655,39 @@ ConnectionType = Type of connection you want to block eg "RemoteEvent"
 Duration = How long you want to block the connection name and type from firing to the server for
 ]]--
 Util.TemporaryBlockConnection = function(ConnectionName: string, Duration: number, ConnectionType: string?)
-	if not (ConnectionName and typeof(ConnectionName) == "string") or not (ConnectionType and typeof(ConnectionType) == "string") or not (Duration and typeof(Duration) == "number") then
+	if not (ConnectionName and typeof(ConnectionName) == "string")
+		or not (Duration and typeof(Duration) == "number") then
 		OutputDebug("Warning", "Passed connection name or type is not valid")
 		return
 	end
-	
-	if not ConnectionType then
-		ConnectionType = "RemoteEvent"
-	end
-	
+
+	ConnectionType = ConnectionType or "RemoteEvent"
+
 	OutputDebug("Warning", "Blocking event " .. ConnectionName .. " type " .. ConnectionType)
+
 	local Remote = game.ReplicatedStorage.Modules.Network:FindFirstChild(ConnectionType)
 	if not Remote then
 		OutputDebug("Warning", "Event not found: " .. ConnectionType)
 		return
 	end
-	local OriginalFire = Remote.FireServer
+
 	local Blocked = true
-	Remote.FireServer = function(self, name, ...)
-		if Blocked and name == ConnectionName then
-			OutputDebug("Warning", "Blocked: " .. ConnectionName .. " (" .. ConnectionType .. ")")
-			return
+
+	local OriginalNamecall
+	OriginalNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+		if self == Remote and getnamecallmethod() == "FireServer" then
+			local args = {...}
+			if Blocked and args[1] == ConnectionName then
+				OutputDebug("Warning", "Blocked: " .. ConnectionName)
+				return
+			end
 		end
-		return OriginalFire(self, name, ...)
-	end
+		return OriginalNamecall(self, ...)
+	end)
+
 	task.delay(Duration, function()
 		Blocked = false
-		Remote.FireServer = OriginalFire
-		OutputDebug("Warning", "Unblocked: " .. ConnectionName .. " (" .. ConnectionType .. ")")
+		OutputDebug("Warning", "Unblocked: " .. ConnectionName)
 	end)
 end
 
