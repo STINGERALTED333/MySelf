@@ -1,0 +1,499 @@
+--// Check if already active
+if game.CoreGui:GetAttribute("GenESP_Active") then
+    warn("[GENERATOR]: Esp already active, Cannot execute twice.")
+    return
+end
+game.CoreGui:SetAttribute("GenESP_Active", true)
+
+--// Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+--// Instances
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local KillerFolder = game.Workspace.Players.Killers
+local SurvivorsFolder = game.Workspace.Players.Survivors
+local SpectatorFolder = game.Workspace.Players.Spectating
+
+--// Declare functions early
+local function IsCrouching()
+    return false
+end
+
+--// Types
+type SeeConfig = {
+    Spectating: boolean,
+    Survivor: boolean,
+    Killer: boolean,
+    Other: boolean,
+}
+
+type HighlightConfig = {
+    FillColor: Color3,
+    FillColorOccluded: Color3,
+    OutlineColor: Color3,
+    OutlineColorOccluded: Color3,
+    FillTransparency: number,
+    FillTransparencyOccluded: number,
+    OutlineTransparency: number,
+    OutlineTransparencyOccluded: number,
+    BoxColor: Color3,
+    BoxThickness: number,
+    BoxTransparency: number,        -- when fully visible
+    BoxTransparencyOccluded: number, -- when occluded (box fades)
+    ShowBox: boolean,
+    ShowThroughWalls: boolean,
+}
+
+type Config = {
+    GeneratorHighlight: HighlightConfig,
+    FakeGeneratorHighlight: HighlightConfig,
+    TweenInfo: TweenInfo,
+    DisableInfo: TweenInfo,
+    OcclusionInterval: number,
+    SeeConfig: SeeConfig
+}
+
+--// Config
+local Config: Config = {
+    GeneratorHighlight = {
+        FillColor              = Color3.fromRGB(140, 0, 200),
+        FillColorOccluded      = Color3.fromRGB(110, 0, 175),
+        OutlineColor           = Color3.fromRGB(80, 0, 130),
+        OutlineColorOccluded   = Color3.fromRGB(65, 0, 110),
+        FillTransparency       = 0.68,
+        FillTransparencyOccluded  = 0.82,
+        OutlineTransparency    = 0,
+        OutlineTransparencyOccluded = 0.6,
+        BoxColor               = Color3.fromRGB(80, 0, 130),
+        BoxThickness           = 2,
+        BoxTransparency        = 0.75,  
+        BoxTransparencyOccluded = 0.4,
+        ShowBox                = true,
+        ShowThroughWalls       = true,
+    },
+    FakeGeneratorHighlight = {
+        FillColor              = Color3.fromRGB(200, 60, 60),
+        FillColorOccluded      = Color3.fromRGB(200, 60, 60),
+        OutlineColor           = Color3.fromRGB(120, 20, 20),
+        OutlineColorOccluded   = Color3.fromRGB(120, 20, 20),
+        FillTransparency       = 0.8,
+        FillTransparencyOccluded  = 0.8,
+        OutlineTransparency    = 0,
+        OutlineTransparencyOccluded = 0,
+        BoxColor               = Color3.fromRGB(120, 20, 20),
+        BoxThickness           = 2,
+        BoxTransparency        = 1,
+        BoxTransparencyOccluded = 0,
+        ShowBox                = true,
+        ShowThroughWalls       = false,
+    },
+    TweenInfo = TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    DisableInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    OcclusionInterval = 0.12,
+    SeeConfig = {
+        Spectating = false,  --// if you can see generators as spectator (same goes for the other configs below)
+        Survivor = true,
+        Killer = true,
+        Other = true
+    },
+}
+
+Config.EnabledCheck = function()
+    if not LocalPlayer.Character then return false end
+    if IsCrouching() then return false end
+    local char = LocalPlayer.Character
+    local parent = char.Parent
+    if parent == SpectatorFolder then return Config.SeeConfig.Spectator end
+    if parent == SurvivorsFolder then return Config.SeeConfig.Survivor end
+    if parent == KillerFolder    then return Config.SeeConfig.Killer end
+    return Config.SeeConfig.Other
+end
+
+--// State
+local ESP = {}
+local destroyed = false
+local heartbeatConn = nil
+local inputConn = nil
+
+local function randomString(len)
+    local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    local result = {}
+    for i = 1, len do
+        local idx = math.random(1, #chars)
+        result[i] = chars:sub(idx, idx)
+    end
+    return table.concat(result)
+end
+
+local highlightFolder = Instance.new("Folder")
+highlightFolder.Name = randomString(math.random(14,34))
+highlightFolder.Parent = game.CoreGui
+
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+rayParams.FilterDescendantsInstances = {
+    LocalPlayer.Character or Instance.new("Folder"),
+    highlightFolder,
+}
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    rayParams.FilterDescendantsInstances = { char, highlightFolder }
+end)
+
+--// Helpers
+local function getMapFolder()
+    local m = workspace:FindFirstChild("Map")
+    m = m and m:FindFirstChild("Ingame")
+    m = m and m:FindFirstChild("Map")
+    return m
+end
+
+local function getProgress(genFolder)
+    local attr = genFolder:GetAttribute("Progress")
+    if attr ~= nil then return attr end
+    local prog = genFolder:FindFirstChild("Progress")
+    if prog and (prog:IsA("NumberValue") or prog:IsA("IntValue")) then
+        return prog.Value
+    end
+    return nil
+end
+
+local function isOccluded(worldCenter, genFolder)
+    local camPos = Camera.CFrame.Position
+    local dir = worldCenter - camPos
+    rayParams.FilterDescendantsInstances = {
+        LocalPlayer.Character or Instance.new("Folder"),
+        highlightFolder,
+        genFolder,
+    }
+    local result = workspace:Raycast(camPos, dir, rayParams)
+    if result then
+        return (result.Position - camPos).Magnitude < dir.Magnitude - 0.5
+    end
+    return false
+end
+
+local function getModelBoundingBox(folder)
+    local minX, minY, minZ = math.huge, math.huge, math.huge
+    local maxX, maxY, maxZ = -math.huge, -math.huge, -math.huge
+    local found = false
+
+    for _, part in ipairs(folder:GetDescendants()) do
+        if part:IsA("BasePart")
+            and part.Transparency < 1
+            and part.Size.Magnitude < 50
+            and part.Name ~= "COLLISION"
+            and part.Name ~= "HumanoidRootPart" then
+
+            found = true
+            local cf, size = part.CFrame, part.Size
+            local hx, hy, hz = size.X/2, size.Y/2, size.Z/2
+            for _, o in ipairs({
+                Vector3.new( hx,  hy,  hz), Vector3.new(-hx,  hy,  hz),
+                Vector3.new( hx, -hy,  hz), Vector3.new(-hx, -hy,  hz),
+                Vector3.new( hx,  hy, -hz), Vector3.new(-hx,  hy, -hz),
+                Vector3.new( hx, -hy, -hz), Vector3.new(-hx, -hy, -hz),
+            }) do
+                local wp = cf:PointToWorldSpace(o)
+                if wp.X < minX then minX = wp.X end if wp.X > maxX then maxX = wp.X end
+                if wp.Y < minY then minY = wp.Y end if wp.Y > maxY then maxY = wp.Y end
+                if wp.Z < minZ then minZ = wp.Z end if wp.Z > maxZ then maxZ = wp.Z end
+            end
+        end
+    end
+
+    if not found then return nil end
+    return
+        Vector3.new((minX+maxX)/2, (minY+maxY)/2, (minZ+maxZ)/2),
+        Vector3.new(maxX-minX, maxY-minY, maxZ-minZ)
+end
+
+local function worldToScreen(pos)
+    local sp, onScreen = Camera:WorldToViewportPoint(pos)
+    return Vector2.new(sp.X, sp.Y), onScreen, sp.Z
+end
+
+local function getBoundingBox2D(worldCenter, worldSize)
+    local hx, hy, hz = worldSize.X/2, worldSize.Y/2, worldSize.Z/2
+    local cf = CFrame.new(worldCenter)
+    local corners2D = {}
+
+    for _, o in ipairs({
+        Vector3.new( hx,  hy,  hz), Vector3.new(-hx,  hy,  hz),
+        Vector3.new( hx, -hy,  hz), Vector3.new(-hx, -hy,  hz),
+        Vector3.new( hx,  hy, -hz), Vector3.new(-hx,  hy, -hz),
+        Vector3.new( hx, -hy, -hz), Vector3.new(-hx, -hy, -hz),
+    }) do
+        local screen, _, depth = worldToScreen(cf:PointToWorldSpace(o))
+        if depth > 0 then table.insert(corners2D, screen) end
+    end
+
+    if #corners2D == 0 then return nil end
+
+    local minX, minY = math.huge, math.huge
+    local maxX, maxY = -math.huge, -math.huge
+    for _, v in ipairs(corners2D) do
+        if v.X < minX then minX = v.X end if v.X > maxX then maxX = v.X end
+        if v.Y < minY then minY = v.Y end if v.Y > maxY then maxY = v.Y end
+    end
+
+    return Vector2.new(minX, minY), Vector2.new(maxX - minX, maxY - minY)
+end
+
+--// Drawing + Highlight setup
+local function makeDrawings(cfg: HighlightConfig)
+    local outline = Drawing.new("Square")
+    outline.Visible = false
+    outline.Filled = false
+    outline.Thickness = cfg.BoxThickness
+    outline.Color = cfg.BoxColor
+
+    local text = Drawing.new("Text")
+    text.Visible = false
+    text.Size = 15
+    text.Center = true
+    text.Outline = true
+    text.OutlineColor = Color3.fromRGB(0, 0, 0)
+    text.Font = 2
+    text.Color = Color3.fromRGB(255, 255, 255)
+
+    return { outline = outline, text = text }
+end
+
+local function removeDrawings(drawings)
+    if drawings.outline then drawings.outline.Visible = false drawings.outline:Remove() end
+    if drawings.text    then drawings.text.Visible    = false drawings.text:Remove()    end
+end
+
+local function makeHighlight(cfg: HighlightConfig)
+    local h = Instance.new("Highlight")
+    h.Name = randomString(math.random(14,34))
+    h.FillColor          = cfg.FillColor
+    h.OutlineColor       = cfg.OutlineColor
+    h.FillTransparency   = cfg.FillTransparency
+    h.OutlineTransparency = cfg.OutlineTransparency
+    h.DepthMode = cfg.ShowThroughWalls
+        and Enum.HighlightDepthMode.AlwaysOnTop
+        or  Enum.HighlightDepthMode.Occluded
+    h.Parent = highlightFolder
+    return h
+end
+
+local function tweenHighlight(highlight, cfg: HighlightConfig, occluded: boolean)
+    TweenService:Create(highlight, Config.TweenInfo, {
+        FillColor           = occluded and cfg.FillColorOccluded    or cfg.FillColor,
+        OutlineColor        = occluded and cfg.OutlineColorOccluded  or cfg.OutlineColor,
+        FillTransparency    = occluded and cfg.FillTransparencyOccluded   or cfg.FillTransparency,
+        OutlineTransparency = occluded and cfg.OutlineTransparencyOccluded or cfg.OutlineTransparency,
+    }):Play()
+end
+
+local function tweenHighlightOut(highlight, onComplete)
+    local t = TweenService:Create(highlight, Config.DisableInfo, {
+        FillTransparency = 1,
+        OutlineTransparency = 1,
+    })
+    t:Play()
+    t.Completed:Connect(function()
+        highlight.Enabled = false
+        if onComplete then onComplete() end
+    end)
+end
+
+--// ESP lifecycle
+local function setupESP(genFolder, isFake)
+    if ESP[genFolder] then return end
+    local cfg = isFake and Config.FakeGeneratorHighlight or Config.GeneratorHighlight
+    local drawings = makeDrawings(cfg)
+    local highlight = makeHighlight(cfg)
+    highlight.Adornee = genFolder
+    ESP[genFolder] = {
+        cfg               = cfg,
+        drawings          = drawings,
+        highlight         = highlight,
+        isFake            = isFake,
+        lastOccluded      = false,
+        lastOccludedState = nil,
+        lastEnabled       = nil,
+        isTweeningOut     = false, 
+        currentBoxTransp  = 0,     
+        occlusionTimer    = 0,
+    }
+end
+
+local function cleanupESP(genFolder)
+    local data = ESP[genFolder]
+    if not data then return end
+    removeDrawings(data.drawings)
+    if data.highlight and data.highlight.Parent then data.highlight:Destroy() end
+    ESP[genFolder] = nil
+end
+
+local function destroyAll()
+    destroyed = true
+    game.CoreGui:SetAttribute("GenESP_Active", nil)
+    if heartbeatConn then heartbeatConn:Disconnect() end
+    if inputConn     then inputConn:Disconnect()     end
+    for genFolder in pairs(ESP) do cleanupESP(genFolder) end
+    table.clear(ESP)
+    if highlightFolder and highlightFolder.Parent then highlightFolder:Destroy() end
+    warn("Generator ESP destroyed")
+end
+
+local function scanGenerators()
+    local mapFolder = getMapFolder()
+    if not mapFolder then return end
+    for _, child in ipairs(mapFolder:GetChildren()) do
+        if child.Name == "Generator" then
+            setupESP(child, false)
+        elseif child.Name == "FakeGenerator" then
+            setupESP(child, true)
+        end
+    end
+end
+
+scanGenerators()
+
+--// Main loop
+heartbeatConn = RunService.Heartbeat:Connect(function(dt)
+    if destroyed then return end
+
+    local enabled = Config.EnabledCheck()
+
+    local mapFolder = getMapFolder()
+    if mapFolder then
+        for _, child in ipairs(mapFolder:GetChildren()) do
+            local isFake = child.Name == "FakeGenerator"
+            if (isFake or child.Name == "Generator") and not ESP[child] then
+                setupESP(child, isFake)
+            end
+        end
+    end
+
+    for genFolder, data in pairs(ESP) do
+        if not genFolder or not genFolder.Parent then
+            cleanupESP(genFolder)
+            continue
+        end
+
+        local cfg      = data.cfg
+        local drawings = data.drawings
+        local highlight = data.highlight
+        local isFake   = data.isFake
+
+        if not enabled then
+            if data.lastEnabled ~= false then
+                data.lastEnabled = false
+                data.lastOccludedState = nil
+                data.isTweeningOut = true
+                tweenHighlightOut(highlight, function()
+                    data.isTweeningOut = false 
+                end)
+                task.delay(Config.DisableInfo.Time, function()
+                    if not destroyed then
+                        drawings.outline.Visible = false
+                        drawings.text.Visible = false
+                    end
+                end)
+            end
+            data.currentBoxTransp = data.currentBoxTransp + (1 - data.currentBoxTransp) * 0.15
+            drawings.outline.Transparency = data.currentBoxTransp
+            continue
+        end
+
+        if data.lastEnabled ~= true then
+            if data.isTweeningOut then continue end 
+            data.lastEnabled = true
+            highlight.Enabled = true
+            highlight.FillTransparency = 1
+            highlight.OutlineTransparency = 1
+            data.lastOccludedState = nil
+        end
+
+        if not isFake then
+            local progress = getProgress(genFolder)
+            if progress ~= nil and progress >= 100 then
+                highlight.Enabled = false
+                drawings.outline.Visible = false
+                drawings.text.Visible = false
+                continue
+            end
+        end
+
+        local worldCenter, worldSize = getModelBoundingBox(genFolder)
+        if not worldCenter then
+            drawings.outline.Visible = false
+            drawings.text.Visible = false
+            continue
+        end
+
+        local screenCenter, onScreen, depth = worldToScreen(worldCenter)
+
+        if depth <= 0 then
+            highlight.Enabled = false
+            drawings.outline.Visible = false
+            drawings.text.Visible = false
+            continue
+        end
+
+        highlight.Enabled = true
+
+        data.occlusionTimer += dt
+        if data.occlusionTimer >= Config.OcclusionInterval then
+            data.occlusionTimer = 0
+            data.lastOccluded = isOccluded(worldCenter, genFolder)
+        end
+
+        local occluded = data.lastOccluded
+
+        if occluded ~= data.lastOccludedState then
+            data.lastOccludedState = occluded
+            tweenHighlight(highlight, cfg, occluded)
+        end
+
+        if cfg.ShowBox then
+            local topLeft, boxSize = getBoundingBox2D(worldCenter, worldSize)
+            if topLeft and boxSize.X >= 1 and boxSize.Y >= 1 then
+                local targetTransp = occluded and cfg.BoxTransparencyOccluded or cfg.BoxTransparency
+                data.currentBoxTransp = data.currentBoxTransp + (targetTransp - data.currentBoxTransp) * 0.1
+                drawings.outline.Transparency = data.currentBoxTransp
+                drawings.outline.Position = topLeft
+                drawings.outline.Size = boxSize
+                if isFake then
+                    drawings.outline.Visible = onScreen and not occluded
+                else
+                    drawings.outline.Visible = true
+                end
+            else
+                drawings.outline.Visible = false
+            end
+        else
+            drawings.outline.Visible = false
+        end
+
+        if not isFake then
+            local progress = getProgress(genFolder)
+            local topLeft  = getBoundingBox2D(worldCenter, worldSize)
+            if topLeft then
+                drawings.text.Text     = progress ~= nil and string.format("Progress: %d", progress) or "Progress: ?"
+                drawings.text.Position = Vector2.new(screenCenter.X, topLeft.Y - 20)
+                drawings.text.Visible  = true
+            else
+                drawings.text.Visible = false
+            end
+        else
+            drawings.text.Visible = false
+        end
+    end
+end)
+
+inputConn = UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.F8 then destroyAll() end
+end)
+
+print("Generator ESP loaded. F8 to destroy.")
