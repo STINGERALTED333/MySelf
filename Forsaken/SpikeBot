@@ -1,0 +1,499 @@
+_G.ForsakenUtilDebug = false
+local UtilityForsaken = loadstring(game:HttpGet('https://pastebin.com/raw/aH4RWNZz'))()
+local AnimationsTable = UtilityForsaken.ReturnIDType(
+    "idk",
+    "JohnDoe",
+    {"Config.Animations.CorruptEnergy"}
+)
+
+local CONFIG = {
+    ANIM_IDS = AnimationsTable,
+
+    AIM_DURATION        = 3.5,
+    SPIKES_START_AT     = 2.0,
+    SPIKE_DIST_STEP  = 4.5,
+    LOCK_DIST_OFFSET = 18,     -- extra studs before target to trigger lock 
+    SPIKE_COUNT         = 27,
+    SPIKE_DELAY         = 0.054,
+    SPIKE_HALF_WIDTH    = 3.5,
+
+    AUTO_LOCK_BUFFER    = 0,
+
+    PREDICTION_TIME     = 0.18,
+    VELOCITY_HISTORY    = 0.15,
+
+    MAX_TARGET_DIST     = 108,
+
+    DEBUG               = true,
+    REAL_PLAYERS_ONLY   = false,
+
+    HIGHLIGHT_COLOR      = Color3.fromRGB(255, 40, 40),
+    HIGHLIGHT_FILL_TRANS = 0.7,
+    HIGHLIGHT_OUT_TRANS  = 0.3,
+}
+
+local ANIM_ID_SET = {}
+for _, v in ipairs(CONFIG.ANIM_IDS) do
+    local id = tonumber(tostring(v):match("%d+"))
+    if id then
+        ANIM_ID_SET[id] = true
+        ANIM_ID_SET["rbxassetid://" .. id] = true
+    end
+end
+local function isTrackedAnim(animId)
+    local numId = tonumber(tostring(animId):match("%d+"))
+    return ANIM_ID_SET[animId] or (numId and ANIM_ID_SET[numId])
+end
+
+local Players          = game:GetService("Players")
+local RunService       = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer      = Players.LocalPlayer
+local Camera           = workspace.CurrentCamera
+
+local phase         = "idle"
+local aimDirection  = nil
+local aimConn       = nil
+local trackConn     = nil
+local scriptEnabled = true
+local spikesActive  = false
+
+local manualTarget  = nil
+local highlightInst = nil
+local clickConn     = nil
+local lastFacingDir = nil
+local stopTask      = nil
+
+local function log(msg)
+    if CONFIG.DEBUG then print("[JDAim] " .. tostring(msg)) end
+end
+
+-- ── GUI ───────────────────────────────────────────────────────────────────────
+local SpikeGUI = Instance.new("ScreenGui")
+SpikeGUI.Name           = "SpikeGUI"
+SpikeGUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+SpikeGUI.ResetOnSpawn   = false
+SpikeGUI.Parent         = game:GetService("CoreGui")
+
+local ToggleSpikeButton = Instance.new("TextButton")
+ToggleSpikeButton.TextWrapped      = true
+ToggleSpikeButton.BorderSizePixel  = 0
+ToggleSpikeButton.TextScaled       = true
+ToggleSpikeButton.BackgroundColor3 = Color3.fromRGB(0, 255, 18)
+ToggleSpikeButton.FontFace         = Font.new("rbxasset://fonts/families/SourceSansPro.json")
+ToggleSpikeButton.Size             = UDim2.new(0.14, 0, 0.04, 0)
+ToggleSpikeButton.TextColor3       = Color3.new(0, 0, 0)
+ToggleSpikeButton.Text             = "Spike Aim: ON"
+ToggleSpikeButton.Position         = UDim2.new(0.86, 0, 0.47, 0)
+ToggleSpikeButton.Parent           = SpikeGUI
+SpikeGUI.Enabled = false
+
+local function updateGUIVisibility()
+    local character = LocalPlayer.Character
+    SpikeGUI.Enabled = character and character.Name == "JohnDoe"
+end
+LocalPlayer.CharacterAdded:Connect(function() task.wait() updateGUIVisibility() end)
+LocalPlayer.CharacterRemoving:Connect(function() SpikeGUI.Enabled = false end)
+
+local function updateButton()
+    if scriptEnabled then
+        ToggleSpikeButton.Text             = "Spike Aim: ON"
+        ToggleSpikeButton.BackgroundColor3 = Color3.fromRGB(0, 255, 18)
+    else
+        ToggleSpikeButton.Text             = "Spike Aim: OFF"
+        ToggleSpikeButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    end
+end
+
+-- ── Highlight ─────────────────────────────────────────────────────────────────
+local function applyHighlight(char)
+    if highlightInst then highlightInst:Destroy(); highlightInst = nil end
+    if not char then return end
+    local h = Instance.new("Highlight")
+    h.FillColor           = CONFIG.HIGHLIGHT_COLOR
+    h.OutlineColor        = CONFIG.HIGHLIGHT_COLOR
+    h.FillTransparency    = CONFIG.HIGHLIGHT_FILL_TRANS
+    h.OutlineTransparency = CONFIG.HIGHLIGHT_OUT_TRANS
+    h.DepthMode           = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Adornee             = char
+    h.Parent              = char
+    highlightInst         = h
+end
+
+local function clearHighlight()
+    if highlightInst then highlightInst:Destroy(); highlightInst = nil end
+    manualTarget = nil
+end
+
+-- ── Position / velocity history ───────────────────────────────────────────────
+local posHistory = {}
+
+local function updatePositionHistory()
+    local now = tick()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
+        local char = player.Character
+        if not char then posHistory[player] = nil; continue end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then continue end
+        if not posHistory[player] then posHistory[player] = {} end
+        local h = posHistory[player]
+        table.insert(h, { t = now, pos = root.Position })
+        local cutoff = now - CONFIG.VELOCITY_HISTORY
+        while #h > 2 and h[1].t < cutoff do table.remove(h, 1) end
+    end
+    if not CONFIG.REAL_PLAYERS_ONLY then
+        local wPlayers = workspace:FindFirstChild("Players")
+        if wPlayers then
+            for _, folder in ipairs(wPlayers:GetChildren()) do
+                for _, char in ipairs(folder:GetChildren()) do
+                    if not posHistory[char] then posHistory[char] = {} end
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if not root then continue end
+                    local h = posHistory[char]
+                    table.insert(h, { t = now, pos = root.Position })
+                    local cutoff = now - CONFIG.VELOCITY_HISTORY
+                    while #h > 2 and h[1].t < cutoff do table.remove(h, 1) end
+                end
+            end
+        end
+    end
+end
+
+local function getVelocity(ref)
+    local h = posHistory[ref]
+    if not h or #h < 2 then return Vector3.zero end
+    local oldest = h[1]; local newest = h[#h]
+    local dt = newest.t - oldest.t
+    if dt < 0.001 then return Vector3.zero end
+    local v = (newest.pos - oldest.pos) / dt
+    return Vector3.new(v.X, 0, v.Z)
+end
+
+local function getPredictedPos(ref, root, refY)
+    local vel  = getVelocity(ref)
+    local pred = root.Position + vel * CONFIG.PREDICTION_TIME
+    return Vector3.new(pred.X, refY, pred.Z)
+end
+
+-- ── Enemy list ────────────────────────────────────────────────────────────────
+local function getCharFromRef(ref)
+    if typeof(ref) == "Instance" and ref:IsA("Model") then return ref end
+    if ref and ref.Character then return ref.Character end
+    return nil
+end
+
+local function getEnemies()
+    local character = LocalPlayer.Character
+    if not character or not character.PrimaryPart then return {} end
+    local myPos = character.PrimaryPart.Position
+    local enemies = {}
+    local function tryAdd(char, ref)
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local hum  = char:FindFirstChild("Humanoid")
+        if not root or not hum or hum.Health <= 0 then return end
+        local dist = (root.Position - myPos).Magnitude
+        if dist < CONFIG.SPIKE_DIST_STEP then return end
+        if dist > CONFIG.MAX_TARGET_DIST + CONFIG.SPIKE_HALF_WIDTH then return end
+        table.insert(enemies, {
+            ref     = ref,
+            char    = char,
+            root    = root,
+            dist    = dist,
+            predPos = getPredictedPos(ref, root, myPos.Y),
+        })
+    end
+    if CONFIG.REAL_PLAYERS_ONLY then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player == LocalPlayer then continue end
+            tryAdd(player.Character, player)
+        end
+    else
+        local wPlayers = workspace:FindFirstChild("Players")
+        if wPlayers then
+            for _, folder in ipairs(wPlayers:GetChildren()) do
+                for _, char in ipairs(folder:GetChildren()) do
+                    tryAdd(char, char)
+                end
+            end
+        end
+    end
+    table.sort(enemies, function(a, b) return a.dist < b.dist end)
+    return enemies
+end
+
+-- ── Direction helpers ─────────────────────────────────────────────────────────
+local function dirToTarget(myPos, ref, root)
+    local pred  = getPredictedPos(ref, root, myPos.Y)
+    local delta = pred - myPos
+    if delta.Magnitude < 0.001 then return nil end
+    return delta.Unit
+end
+
+-- ── Click targeting ───────────────────────────────────────────────────────────
+local function stopClickTargeting()
+    if clickConn then clickConn:Disconnect(); clickConn = nil end
+end
+
+local function startClickTargeting()
+    stopClickTargeting()
+    clickConn = UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+        if phase == "idle" or phase == "autolock" or phase == "past" then return end
+
+        local mousePos = Vector2.new(input.Position.X, input.Position.Y)
+        local enemies  = getEnemies()
+        local best, bestChar, bestDist2D = nil, nil, math.huge
+
+        for _, enemy in ipairs(enemies) do
+            local screenPos = Camera:WorldToViewportPoint(enemy.root.Position)
+            if screenPos.Z <= 0 then continue end
+            local d2d = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+            if d2d < bestDist2D then
+                bestDist2D = d2d
+                best       = enemy.ref
+                bestChar   = enemy.char
+            end
+        end
+
+        if best then
+            manualTarget = best
+            applyHighlight(bestChar)
+            log("THESE SPIKES WILL BE STAINED WITH YOUR BLOOD: " .. (bestChar and bestChar.Name or "?"))
+        else
+            clearHighlight()
+            log("No target near cursor")
+        end
+    end)
+end
+
+-- ── Stop ──────────────────────────────────────────────────────────────────────
+local function stopAimLoop()
+    spikesActive  = false
+    phase         = "idle"
+    aimDirection  = nil
+    lastFacingDir = nil
+    clearHighlight()
+    stopClickTargeting()
+    if stopTask then pcall(task.cancel, stopTask); stopTask = nil end
+    if aimConn  then aimConn:Disconnect(); aimConn = nil end
+    log("idle")
+end
+
+-- ── Main loop ─────────────────────────────────────────────────────────────────
+local function startAimLoop()
+    if not scriptEnabled then return end
+    if aimConn then aimConn:Disconnect(); aimConn = nil end
+
+    local character = LocalPlayer.Character
+    if not character or character.Name ~= "JohnDoe" then return end
+
+    phase         = "manual"
+    spikesActive  = false
+    manualTarget  = nil
+    lastFacingDir = nil
+    aimDirection  = nil
+
+    startClickTargeting()
+
+    -- spikes begin
+    task.delay(CONFIG.SPIKES_START_AT, function()
+        if phase == "idle" then return end
+        spikesActive = true
+        log("spikes active")
+
+        local spikeStartTime = tick()
+        local lockConn
+        lockConn = RunService.Heartbeat:Connect(function()
+            if phase ~= "manual" then
+                lockConn:Disconnect(); return
+            end
+
+            local char = LocalPlayer.Character
+            if not char or not char.PrimaryPart then return end
+            local myPos  = char.PrimaryPart.Position
+            local myRoot = char.PrimaryPart
+
+            local elapsed        = tick() - spikeStartTime
+            local currentSpike   = math.min(math.floor(elapsed / CONFIG.SPIKE_DELAY), CONFIG.SPIKE_COUNT)
+            local spikeFrontDist = currentSpike * CONFIG.SPIKE_DIST_STEP
+
+            -- target dist: use clicked target, or find closest enemy in current facing corridor
+            local targetDist = math.huge
+            local targetRef  = nil
+            if manualTarget then
+                local tchar = getCharFromRef(manualTarget)
+                local troot = tchar and tchar:FindFirstChild("HumanoidRootPart")
+                if troot then
+                    local pred = getPredictedPos(manualTarget, troot, myPos.Y)
+                    targetDist = (pred - myPos).Magnitude
+                    targetRef  = manualTarget
+                end
+            else
+                local look = myRoot.CFrame.LookVector
+                local dir  = Vector3.new(look.X, 0, look.Z)
+                if dir.Magnitude > 0.001 then
+                    dir = dir.Unit
+                    for _, enemy in ipairs(getEnemies()) do
+                        local to      = enemy.predPos - myPos
+                        local forward = to:Dot(dir)
+                        local lateral = (to - dir * forward).Magnitude
+                        if lateral <= CONFIG.SPIKE_HALF_WIDTH * 2 and forward > 0 then
+                            if forward < targetDist then
+                                targetDist = forward
+                                targetRef  = enemy.ref
+                            end
+                        end
+                    end
+                end
+            end
+
+            local lockThreshold = targetDist - (CONFIG.AUTO_LOCK_BUFFER * CONFIG.SPIKE_DIST_STEP) - CONFIG.LOCK_DIST_OFFSET
+            log(string.format("spike front=%.1f  target=%.1f  threshold=%.1f", spikeFrontDist, targetDist, lockThreshold))
+
+            if targetDist ~= math.huge and spikeFrontDist >= lockThreshold then
+                -- promote auto-found enemy to manualTarget so autolock can track them
+                if not manualTarget and targetRef then
+                    local tchar = getCharFromRef(targetRef)
+                    manualTarget = targetRef
+                    applyHighlight(tchar)
+                end
+
+                phase = "autolock"
+                log("autolock – spike front=" .. math.floor(spikeFrontDist) .. " target=" .. math.floor(targetDist))
+                lockConn:Disconnect()
+
+                local remainingDist = math.max(0, targetDist - spikeFrontDist)
+                local timeToReach   = remainingDist / (CONFIG.SPIKE_DIST_STEP / CONFIG.SPIKE_DELAY)
+                local extraSpikes   = math.ceil(CONFIG.SPIKE_HALF_WIDTH / CONFIG.SPIKE_DIST_STEP) + 2
+                task.delay(timeToReach + extraSpikes * CONFIG.SPIKE_DELAY, function()
+                    if phase == "autolock" then
+                        phase = "past"
+                        clearHighlight()
+                        log("past – holding last direction")
+                    end
+                end)
+            end
+        end)
+    end)
+
+    -- ability ends
+    stopTask = task.delay(CONFIG.AIM_DURATION, stopAimLoop)
+
+    -- render loop
+    aimConn = RunService.RenderStepped:Connect(function(dt)
+        if phase == "idle" then
+            aimConn:Disconnect(); aimConn = nil
+            return
+        end
+
+        local char = LocalPlayer.Character
+        if not char or not char.PrimaryPart then return end
+        local myRoot = char.PrimaryPart
+        local myPos  = myRoot.Position
+
+        -- MANUAL: never touch CFrame, just save facing for autolock to inherit
+        if phase == "manual" then
+            local look = myRoot.CFrame.LookVector
+            lastFacingDir = Vector3.new(look.X, 0, look.Z).Unit
+            return
+        end
+
+        -- AUTOLOCK: track the target
+        if phase == "autolock" then
+            if manualTarget then
+                local tchar = getCharFromRef(manualTarget)
+                local troot = tchar and tchar:FindFirstChild("HumanoidRootPart")
+                if troot and troot.Parent then
+                    local d = dirToTarget(myPos, manualTarget, troot)
+                    if d then lastFacingDir = d end
+                else
+                    clearHighlight()
+                    phase = "past"
+                end
+            end
+            if lastFacingDir then
+                myRoot.CFrame = CFrame.new(myPos, myPos + lastFacingDir)
+            end
+            return
+        end
+
+        -- PAST: hold last direction
+        if phase == "past" then
+            if lastFacingDir then
+                myRoot.CFrame = CFrame.new(myPos, myPos + lastFacingDir)
+            end
+            return
+        end
+    end)
+end
+
+-- ── Toggle ────────────────────────────────────────────────────────────────────
+ToggleSpikeButton.MouseButton1Click:Connect(function()
+    scriptEnabled = not scriptEnabled
+    updateButton()
+    if not scriptEnabled and phase ~= "idle" then stopAimLoop() end
+    warn("Spike aim: " .. (scriptEnabled and "ON" or "OFF"))
+end)
+
+-- ── Position history ──────────────────────────────────────────────────────────
+local function startTracker()
+    if trackConn then trackConn:Disconnect() end
+    trackConn = RunService.Heartbeat:Connect(updatePositionHistory)
+end
+
+-- ── Animation watcher ─────────────────────────────────────────────────────────
+local function watchAnimator(animator)
+    animator.AnimationPlayed:Connect(function(track)
+        if isTrackedAnim(track.Animation.AnimationId) then
+            log("CorruptEnergy anim detected")
+            startAimLoop()
+        end
+    end)
+end
+
+local function onCharacterAdded(character)
+    character:WaitForChild("HumanoidRootPart")
+    local humanoid = character:WaitForChild("Humanoid")
+    local animator = humanoid:WaitForChild("Animator")
+    stopAimLoop()
+    updateGUIVisibility()
+    watchAnimator(animator)
+end
+
+if LocalPlayer.Character then
+    task.spawn(onCharacterAdded, LocalPlayer.Character)
+end
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+startTracker()
+
+-- ── SpikeCollision fallback ───────────────────────────────────────────────────
+task.spawn(function()
+    local mapFolder = workspace:WaitForChild("Map", 30)
+    if not mapFolder then return end
+    local ingame = mapFolder:WaitForChild("Ingame", 30)
+    if not ingame then return end
+    local debounce = false
+    ingame.ChildAdded:Connect(function(child)
+        if child.Name ~= "SpikeCollision" then return end
+        if debounce or phase ~= "idle" then return end
+        debounce = true
+        if not aimConn then startAimLoop() end
+        task.delay(CONFIG.AIM_DURATION + 0.5, function() debounce = false end)
+    end)
+end)
+
+-- ── F8 destroy ────────────────────────────────────────────────────────────────
+local destroyed = false
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe or input.KeyCode ~= Enum.KeyCode.F8 or destroyed then return end
+    destroyed = true
+    stopAimLoop()
+    if trackConn then trackConn:Disconnect(); trackConn = nil end
+    clearHighlight()
+    stopClickTargeting()
+    SpikeGUI:Destroy()
+    warn("JohnDoe spike aim destroyed (F8)")
+end)
