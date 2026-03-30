@@ -6,14 +6,14 @@ Sprint.Speed = 13
 Sprint.MinStamina = -5
 
 local NoliCon = require(game:GetService("ReplicatedStorage").Assets.Killers.Noli.Config)
-NoliCon.VoidRushInitialTurnMult = 5.5
-NoliCon.VoidRushTurnSpeed = 1.35
-NoliCon.SprintSpeed = 27.8
-NoliCon.Speed = 8.4
+NoliCon.VoidRushInitialTurnMult = 7
+NoliCon.VoidRushTurnSpeed = 1.75
+NoliCon.SprintSpeed = 28
+NoliCon.Speed = 9.5
 NoliCon.MaxStamina = 110
-NoliCon.StaminaLoss = 9.5
-NoliCon.StaminaGain = 23
-NoliCon.VoidRushDashSpeed = 70
+NoliCon.StaminaLoss = 9.25
+NoliCon.StaminaGain = 24
+--NoliCon.VoidRushDashSpeed = 70
 
 local JasonCon = require(game:GetService("ReplicatedStorage").Assets.Killers.Slasher.Config)
 JasonCon.StaminaLoss = 9.2
