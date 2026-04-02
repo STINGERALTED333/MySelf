@@ -289,7 +289,7 @@ local hitboxData = {}
 local soundBoxData = {}
 local killerSoundConnections = {}
 
-local remoteEvent = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Network")::WaitForChild("Network"):WaitForChild("RemoteEvent")
+local remoteEvent = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("Network"):WaitForChild("RemoteEvent")
 
 local attackSoundIds = {}
 for killerName, sounds in pairs(killerSounds) do
