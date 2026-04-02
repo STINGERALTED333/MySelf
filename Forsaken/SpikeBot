@@ -1,5 +1,5 @@
 _G.ForsakenUtilDebug = false
-local UtilityForsaken = loadstring(game:HttpGet('https://pastebin.com/raw/aH4RWNZz'))()
+local UtilityForsaken = loadstring(game:HttpGet('https://raw.githubusercontent.com/STINGERALTED333/MySelf/main/ExtraForsaken/ForsakenUtility'))()
 local AnimationsTable = UtilityForsaken.ReturnIDType(
     "idk",
     "JohnDoe",
