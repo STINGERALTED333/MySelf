@@ -171,7 +171,7 @@ local KillersFolder = Assets.Killers
 local SurvivorsFolder = Assets.Survivors
 local KillersSkinsFolder = Assets.Skins.Killers
 local SurvivorsSkinsFolder = Assets.Skins.Survivors
-local NetworkRemote = game.ReplicatedStorage.Modules.Network.RemoteEvent
+local NetworkRemote = game.ReplicatedStorage.Modules.Network.Network.RemoteEvent
 local ExecutorLevel = 0
 
 --// local functions
