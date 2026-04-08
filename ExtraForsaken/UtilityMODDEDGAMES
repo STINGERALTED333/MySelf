@@ -1,0 +1,704 @@
+--// UTILITY
+if game:GetService("RunService"):IsServer() then
+	warn("blud WHAT are you DOING")
+	return {}
+end
+
+--// util config
+local Util = {}
+local LoadTime = tick()
+Util.Version = "V.2"
+Util.Changelog = "???"
+Util.Connections = {}
+Util.DebugMode = _G.ForsakenUtilDebug or false
+Util.IsraelDefence = false
+
+if Util.IsraelDefence then
+	local ok, isFriends = pcall(function()
+		return game.Players.LocalPlayer:IsFriendsWithAsync(9463341827)
+	end)
+	if not ok or not isFriends then
+		error("bradar what is this")
+		return {}
+	end
+end
+
+--// types
+type SlashConfig = {
+	Size: Vector3,
+	CFrameOffset: CFrame,
+	Damage: number,
+	Knockback: number,
+	HitMultiple: boolean,
+	Windup: number,
+	Linger: number,
+}
+
+type TerrorDistances = {
+	Layer1: number,
+	Layer2: number,
+	Layer3: number,
+	Chase: number,
+	SensetiveChase: boolean?
+}
+
+--// defaults for other scripts to read
+
+Util.ForsakenDefaults = {
+	TerrorDistances = {
+		["Default"] = {
+			["Layer1"] = 60,
+			["Layer2"] = 40,
+			["Layer3"] = 20,
+			["Chase"] = 6
+		}:: TerrorDistances,
+	}:: {[string]: TerrorDistances},
+	SlashConfigs = {
+		["Default"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -1.75),
+			Damage = 20,
+			Knockback = 2,
+			HitMultiple = true,
+			Windup = 0.2,
+			Linger = 0.25
+		}:: SlashConfig,
+	}:: {[string]: SlashConfig}
+}
+
+Util.ForsakenInfo = {
+	TerrorDistances = {
+		["Noli"] = {
+			["Layer1"] = 80,
+			["Layer2"] = 40,
+			["Layer3"] = 20,
+			["Chase"] = 6
+		}:: TerrorDistances,
+		["Slasher"] = {
+			["Layer1"] = 45,
+			["Layer2"] = 30,
+			["Layer3"] = 15,
+			["Chase"] = 6
+		}:: TerrorDistances,
+		["Sixer"] = {
+			["Layer1"] = 90,
+			["Layer2"] = 60,
+			["Layer3"] = 30,
+			["Chase"] = 9
+		}:: TerrorDistances,
+		["Nosferatu"] = {
+			["Layer1"] = 60,
+			["Layer2"] = 45,
+			["Layer3"] = 20,
+			["Chase"] = 10
+		}:: TerrorDistances,
+		["JohnDoe"] = Util.ForsakenDefaults.TerrorDistances.Default:: TerrorDistances,
+		["1x1x1x1"] = Util.ForsakenDefaults.TerrorDistances.Default:: TerrorDistances,
+		["c00lkidd"] = Util.ForsakenDefaults.TerrorDistances.Default:: TerrorDistances,
+		["Other"] = Util.ForsakenDefaults.TerrorDistances.Default:: TerrorDistances,
+	}:: {[string]: TerrorDistances},
+	SlashConfigs = {
+		["Slasher"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -1.75),
+			Damage = 20,
+			Knockback = 2,
+			HitMultiple = true,
+			Windup = 0.2,
+			Linger = 0.25
+		}:: SlashConfig,
+		["1x1x1x1"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -1.75),
+			Damage = 20,
+			Knockback = 2,
+			HitMultiple = false,
+			Windup = 0.4,
+			Linger = 0.25
+		}:: SlashConfig,
+		["Nosferatu"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -1.75),
+			Damage = 24,
+			Knockback = 2,
+			HitMultiple = false,
+			Windup = 0.3,
+			Linger = 0.3
+		}:: SlashConfig,
+		["JohnDoe"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -1.75),
+			Damage = 28,
+			Knockback = 2,
+			HitMultiple = false,
+			Windup = 0.4,
+			Linger = 0.25
+		}:: SlashConfig,
+		["Noli"] = {
+			Size = Vector3.new(4.5 , 6 , 7.5),
+			CFrameOffset = CFrame.new(0 , 0 , -2.25),
+			Damage = 25,
+			Knockback = 2,
+			HitMultiple = false,
+			Windup = 0.35,
+			Linger = 0.25
+		}:: SlashConfig,
+		["c00lkidd"] = {
+			Size = Vector3.new(4.5 , 6 , 5),
+			CFrameOffset = CFrame.new(0 , 0 , -2),
+			Damage = 26.5,
+			Knockback = 2,
+			HitMultiple = false,
+			Windup = 0.1,
+			Linger = 0.3
+		}:: SlashConfig,
+		["Sixer"] = {
+			Size = Vector3.new(5 , 7 , 9.25),
+			CFrameOffset = CFrame.new(0 , -1 , -3.75),
+			Damage = 20,
+			Knockback = 2,
+			HitMultiple = true,
+			Windup = 0.3,
+			Linger = 0.25
+		}:: SlashConfig,
+		["Other"] = Util.ForsakenDefaults.SlashConfigs.Default:: SlashConfig
+	}:: {[string]: SlashConfig}
+}
+
+--// local assign
+local Assets = game.ReplicatedStorage.Assets
+local KillersFolder = Assets.Killers
+local SurvivorsFolder = Assets.Survivors
+local KillersSkinsFolder = Assets.Skins.Killers
+local SurvivorsSkinsFolder = Assets.Skins.Survivors
+local NetworkRemote = game.ReplicatedStorage.Modules.Network.RemoteEvent
+local ExecutorLevel = 0
+
+--// local functions
+local function ResolveType(t, path)
+	local parts = path:split(".")
+	local current = t
+	for _, part in ipairs(parts) do
+		if typeof(current) ~= "table" then return nil end
+		if current[part] ~= nil then
+			current = current[part]
+		elseif current[tonumber(part)] ~= nil then
+			current = current[tonumber(part)]
+		else
+			local found = false
+			for k, v in pairs(current) do
+				if tostring(k):lower() == part:lower() then
+					current = v
+					found = true
+					break
+				end
+			end
+			if not found then return nil end
+		end
+	end
+	return current
+end
+
+local function OutputDebug(Scope,Message)
+	if Util.DebugMode == false then
+		return
+	end
+	
+	if Scope and not Message then
+		Message = Scope
+		Scope = "Warning"
+	end
+	
+	if Scope and Message then
+		if Scope == "Printing" then
+			warn("[SCRIPT UTIL]: " .. Message)
+		elseif Scope == "Warning" then
+			warn("[SCRIPT UTIL]: " .. Message)
+		else
+			warn("[SCRIPT UTIL]: Can only PRINT and WARN with OutputDebug")
+		end
+	else
+		warn("[SCRIPT UTIL]: No scope or message input")
+	end
+end
+
+local function UpdateLevel()
+	local level = 0
+	if syn and syn.get_context then
+		level = syn.get_context()
+	elseif KRNL_INITIALIZED then
+		level = 8
+	elseif fluxus and fluxus.get_thread_identity then
+		level = fluxus.get_thread_identity()
+	elseif getcurrentthreadidentity then
+		level = getcurrentthreadidentity()
+	elseif getthreadidentity then
+		level = getthreadidentity()
+	end
+	ExecutorLevel = level
+end
+
+UpdateLevel()
+
+if 5 >= ExecutorLevel then
+	OutputDebug("Warning","It is not advised to use ForsakenUtil with a low level executor")
+end
+
+local ENCODERS = {}
+
+local function encodeValue(Value)
+	local encoder = ENCODERS[typeof(Value)]
+	if not encoder then
+		OutputDebug("Invalid value type: " .. typeof(Value))
+		return nil
+	end
+	return encoder(Value)
+end
+
+ENCODERS = {
+	string = function(s)
+		local b = buffer.create(5 + #s)
+		buffer.writeu8(b, 0, 3)
+		buffer.writeu32(b, 1, #s)
+		buffer.writestring(b, 5, s)
+		return b
+	end,
+	number = function(n)
+		local b = buffer.create(9)
+		buffer.writeu8(b, 0, 2)
+		buffer.writef64(b, 1, n)
+		return b
+	end,
+	boolean = function(v)
+		local b = buffer.create(2)
+		buffer.writeu8(b, 0, 4)
+		buffer.writeu8(b, 1, v and 1 or 0)
+		return b
+	end,
+	table = function(t)
+		local encoded = {}
+		for k, v in pairs(t) do
+			local result = encodeValue(v)
+			if result then
+				encoded[k] = result
+			else
+				OutputDebug("Skipping key '" .. tostring(k) .. "' — unsupported type: " .. typeof(v))
+			end
+		end
+		return encoded
+	end,
+}
+
+if Util.DebugMode == true then
+	OutputDebug("Printing","Loading UTIL with player: " .. game.Players.LocalPlayer.Name .. " Executor level: " .. ExecutorLevel .. " Util version: " .. Util.Version)
+end
+
+--// util functions
+
+--[[
+Encode a specific type
+example:
+local args = {
+    "ExecuteCommand",
+    {
+        Util.EncodeType("GiveStatus"),
+    }
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+]]--
+Util.EncodeType = function(Value)
+	OutputDebug("Encoding " .. typeof(Value))
+	return encodeValue(Value)
+end
+
+--[[
+Encode arguments
+example:
+local args = {
+    "ExecuteCommand",
+    Util.EncodeArgs("GiveStatus", "WatchYouB6", "Resistance", 10, 99999)
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+]]--
+Util.EncodeArgs = function(...)
+	return Util.EncodeType({...})
+end
+
+--[[
+ListCharacter
+Returns a list of the current characters in the game,Can exclude certain characters
+]]--
+Util.ListCharacter = function(Type: string, Exclusion: {string}?)
+	local ExcludeList,Found = {},{}
+	
+	if typeof(Type) ~= "string" then
+		OutputDebug("Warning","ListCharacter : Type passed is not a string")
+		return
+	end
+	
+	if Exclusion and (typeof(Exclusion) ~= "table") then
+		OutputDebug("Warning","ListCharacter : Exclusion passed is not a table")
+		return
+	elseif Exclusion then
+		for _, v in ipairs(Exclusion) do
+			ExcludeList[v] = true
+		end
+	end
+	
+	local TypeFolder = Assets:FindFirstChild(Type)
+	if TypeFolder then
+		for _, character in pairs(TypeFolder:GetChildren()) do
+			if character:IsA("Folder") and not ExcludeList[character.Name] then
+				table.insert(Found,character.Name)
+			end
+		end
+		return Found or {}
+	else
+		OutputDebug("Warning","ListCharacter : Could not find Type passed")
+		return Found or {}
+	end
+end
+
+--[[
+LevelCheck
+Returns the executors level
+]]--
+Util.LevelCheck = function()
+	local level = 0
+	if syn and syn.get_context then
+		level = syn.get_context()
+	elseif KRNL_INITIALIZED then
+		level = 8
+	elseif fluxus and fluxus.get_thread_identity then
+		level = fluxus.get_thread_identity()
+	elseif getcurrentthreadidentity then
+		level = getcurrentthreadidentity()
+	elseif getthreadidentity then
+		level = getthreadidentity()
+	end
+	return level
+end
+
+--[[
+Download
+Filepath = Where you want the file to be eg "Folder/Cheats"
+Filename = Name of the file
+Filelink = Raw link of the file you want to download
+ForceOverwrite = If the file exists,overwrite it anyways
+]]--
+Util.Download = function(Filepath, Filename, Filelink, ForceOverwrite)
+	if not writefile then
+		OutputDebug("Warning", "Executor lacking writefile")
+		return
+	end
+	local FullPath = Filepath .. "/" .. Filename
+	if not ForceOverwrite and isfile and isfile(FullPath) then
+		OutputDebug("Warning", "Download : File already exists at " .. FullPath .. ", skipping")
+		return
+	end
+	if makefolder and not isfolder(Filepath) then
+		makefolder(Filepath)
+	end
+	local success, response = pcall(function()
+		return game:GetService("HttpService"):GetAsync(Filelink)
+	end)
+	if success then
+		writefile(FullPath, response)
+		OutputDebug("Warning", "Download : Saved to " .. FullPath)
+	else
+		OutputDebug("Warning", "Download : Failed, response: " .. tostring(response))
+	end
+end
+
+--[[
+ReturnIDType
+Type = The thing we searching for (REQUIRED)
+CharacterName = The character we are searching the type for (REQUIRED)
+SpecificType = Find a specific value instead of a animation thats passed by Type (eg "Config.Sounds.Punch" yes with "")
+]]--
+Util.ReturnIDType = function(Type, CharacterName, SpecificType)
+	if 5 >= ExecutorLevel then
+		OutputDebug("Warning","Executor level too low to use require")
+		return {}
+	end
+	if not CharacterName or (typeof(Type) ~= "table" and typeof(Type) ~= "string") then
+		OutputDebug("Warning","Passed CharacterName or TYPE is not valid")
+		return {}
+	end
+	local Searching = {}
+	if typeof(Type) == "table" then
+		Searching = Type
+	else
+		table.insert(Searching, Type)
+	end
+	local SearchingCharacters = {}
+	if typeof(CharacterName) == "table" then
+		SearchingCharacters = CharacterName
+	elseif CharacterName == "All" then
+		for _, v in ipairs(KillersFolder:GetChildren()) do
+			table.insert(SearchingCharacters, v.Name)
+		end
+		for _, v in ipairs(SurvivorsFolder:GetChildren()) do
+			table.insert(SearchingCharacters, v.Name)
+		end
+	elseif CharacterName == "AllKillers" then
+		for _, v in ipairs(KillersFolder:GetChildren()) do
+			table.insert(SearchingCharacters, v.Name)
+		end
+	elseif CharacterName == "AllSurvivors" then
+		for _, v in ipairs(SurvivorsFolder:GetChildren()) do
+			table.insert(SearchingCharacters, v.Name)
+		end
+	else
+		table.insert(SearchingCharacters, CharacterName)
+	end
+	local SpecificTypes = nil
+	if SpecificType then
+		if typeof(SpecificType) == "table" then
+			SpecificTypes = SpecificType
+		else
+			SpecificTypes = {SpecificType}
+		end
+	end
+	local Found = {}
+	local function flattenInto(tbl, target)
+		for _, v in ipairs(tbl) do
+			if typeof(v) == "table" then
+				flattenInto(v, target)
+			else
+				table.insert(target, v)
+			end
+		end
+	end
+
+	local function searchConfig(instance)
+		if not instance then return end
+		local configModule = instance:FindFirstChild("Config")
+		if not configModule then return end
+		local ok, Config = pcall(require, configModule)
+		if not ok or not Config then return end
+		if SpecificTypes then
+			for _, specificType in ipairs(SpecificTypes) do
+				local cleanedType = specificType:gsub("^[Cc]onfig%.", "")
+				local value = ResolveType(Config, cleanedType)
+				if value ~= nil then
+					if typeof(value) == "table" then
+						if value.ID then
+							table.insert(Found, value.ID)
+						else
+							flattenInto(value, Found)
+						end
+					else
+						table.insert(Found, value)
+					end
+				end
+			end
+			return
+		end
+		local Animations = Config.Animations or {}
+		for index, value in pairs(Animations) do
+			for _, searchTerm in ipairs(Searching) do
+				if index:lower() == searchTerm:lower() then
+					if typeof(value) == "table" then
+						flattenInto(value, Found)
+					else
+						table.insert(Found, value)
+					end
+					break
+				end
+			end
+		end
+	end
+	local baseFolders = {
+		KillersFolder,
+		SurvivorsFolder,
+	}
+	local skinFolders = {
+		KillersSkinsFolder,
+		SurvivorsSkinsFolder,
+	}
+	for _, characterName in ipairs(SearchingCharacters) do
+		for _, folder in ipairs(baseFolders) do
+			searchConfig(folder:FindFirstChild(characterName))
+		end
+		for _, skinFolder in ipairs(skinFolders) do
+			local characterSkinFolder = skinFolder:FindFirstChild(characterName)
+			if characterSkinFolder then
+				for _, skin in ipairs(characterSkinFolder:GetChildren()) do
+					searchConfig(skin)
+				end
+			end
+		end
+	end
+	return Found
+end
+
+--[[
+Canuseability
+Name = Name of the ability you are checking
+Returns TRUE if you can use the ability, FALSE if you can't
+]]--
+Util.Canuseability = function(namein)
+	if game.Workspace:GetAttribute("CooldownsDisabled") then
+		return true
+	end
+	function GetCharges(ability)
+		local success, result = pcall(function()
+			local abilityContainer = game:GetService("Players").LocalPlayer.PlayerGui.MainUI.AbilityContainer
+			local chargeLabel = abilityContainer:FindFirstChild(ability) and abilityContainer[ability]:FindFirstChild("Charges")
+			if chargeLabel and chargeLabel.Text ~= "" then
+				return tonumber(chargeLabel.Text)
+			end
+			return 0
+		end)
+		if success then
+			return result or 0
+		else
+			return 0
+		end
+	end
+	local Actors, Status = require(game.ReplicatedStorage.Modules.Actors), require(game.ReplicatedStorage.Modules.Statuses)
+	local Me, Cooldown, ChargesMet = Actors.CurrentActors[game.Players.LocalPlayer], false, false
+	if Me and Me.Behavior and Me.Behavior.Abilities then
+		for abilityname, abilitytable in pairs(Me.Cooldowns) do
+			if abilityname == namein then
+				Cooldown = true
+			end
+		end
+		if not game.Workspace:GetAttribute("ChargesDisabled") then
+			for abilityname, abilitydata in pairs(Me.Behavior.Abilities) do
+				if abilityname == namein then
+					if abilitydata and abilitydata.Charges and GetCharges(namein) == 0 then
+						ChargesMet = false
+					else
+						ChargesMet = true
+					end
+				end
+			end
+		else
+			ChargesMet = true
+		end
+		local lchar = game.Players.LocalPlayer.Character
+		if lchar:GetAttribute("Ragdolling") or lchar:GetAttribute("AbilitiesDisabled") or lchar:GetAttribute("UsingAnimations") or lchar:FindFirstChildOfClass("Tool") then
+			OutputDebug("Warning","Can't use ability [1]: " .. tostring(namein))
+			return false
+		end
+		if ChargesMet and not Cooldown and game.Players.LocalPlayer.Character.PrimaryPart.Anchored == false and not Status:PlayerHasStatus(game.Players.LocalPlayer,"Helpless") and not Status:PlayerHasStatus(game.Players.LocalPlayer,"Stunned") then
+			OutputDebug("Warning","Can use ability: " .. tostring(namein))
+			return true
+		else
+			OutputDebug("Warning","Can't use ability [2]: " .. tostring(namein))
+			return false
+		end
+	end
+	OutputDebug("Warning","Can't use abilitys,Lacking me or behavior [3]")
+	return false
+end
+
+--[[
+UseAbility
+Uses the input ability name
+]]--
+Util.UseAbility = function(AbilityName : string)
+	if typeof(AbilityName) ~= "string" then
+		OutputDebug("Warning","Input AbilityName is not a string")
+		return
+	end
+	local args = {
+		"UseActorAbility",
+		{
+			Util.EncodeType(AbilityName)
+		}
+	}
+	game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Network"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+end
+
+--[[
+ReturnTerrorRadius
+Returns a table of IDS that are the select terror radius
+Options : Layer1 , Layer2 , Layer3 , Chase
+]]--
+Util.ReturnTerrorRadius = function(TerrorRadius: string)
+	if typeof(TerrorRadius) ~= "string" then
+		OutputDebug("Warning", "Input TerrorRadius is not a string")
+		return {}
+	end
+
+	local Characters, Found = Util.ListCharacter("Killers", {}), {}
+
+	local function ReturnRadius(Character: string)
+		local info = Util.ForsakenInfo.TerrorDistances[Character]
+			or Util.ForsakenDefaults.TerrorDistances["Default"]
+		return info and info[TerrorRadius] or 60
+	end
+
+	for _, v in pairs(Characters) do
+		if KillersFolder:FindFirstChild(v) then
+			local radius = ReturnRadius(v)
+			local path = "Sounds.TerrorRadiusThemes." .. tostring(radius)
+			local LocalFound = Util.ReturnIDType("idk", v, {"Config." .. path}) or {}
+			for _, t in pairs(LocalFound) do
+				if typeof(t) == "string" and t:find("rbxassetid") then
+					table.insert(Found, t)
+				end
+			end
+		end
+	end
+
+	return Found
+end
+
+--[[
+TemporaryBlockConnection
+ConnectionName = Name of the connection you want to block
+ConnectionType = Type of connection you want to block eg "RemoteEvent"
+Duration = How long you want to block the connection name and type from firing to the server for
+]]--
+local BypassList = {}  
+Util.TemporaryBlockConnection = function(ConnectionName: string, Duration: number, ConnectionType: string?)
+	if not (ConnectionName and typeof(ConnectionName) == "string")
+		or not (Duration and typeof(Duration) == "number") then
+		OutputDebug("Warning", "Passed connection name or type is not valid")
+		return
+	end
+	ConnectionType = ConnectionType or "RemoteEvent"
+	OutputDebug("Warning", "Blocking event " .. ConnectionName .. " type " .. ConnectionType)
+	local Remote = game.ReplicatedStorage.Modules.Network:FindFirstChild(ConnectionType)
+	if not Remote then
+		OutputDebug("Warning", "Event not found: " .. ConnectionType)
+		return
+	end
+	local Blocked = true
+	local OriginalNamecall
+	OriginalNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+		if self == Remote and getnamecallmethod() == "FireServer" then
+			local args = {...}
+			if Blocked and args[1] == ConnectionName and not BypassList[ConnectionName] then
+				OutputDebug("Warning", "Blocked: " .. ConnectionName)
+				return
+			end
+		end
+		return OriginalNamecall(self, ...)
+	end)
+	task.delay(Duration, function()
+		Blocked = false
+		OutputDebug("Warning", "Unblocked: " .. ConnectionName)
+	end)
+end
+
+Util.TemporaryFireConnection = function(ConnectionName: string, ConnectionType: string?, ...)
+	ConnectionType = ConnectionType or "RemoteEvent"
+	local Remote = game.ReplicatedStorage.Modules.Network:FindFirstChild(ConnectionType)
+	if not Remote then
+		OutputDebug("Warning", "TemporaryFireConnection : Event not found: " .. ConnectionType)
+		return
+	end
+	BypassList[ConnectionName] = true
+	Remote:FireServer(ConnectionName, ...)
+	BypassList[ConnectionName] = nil
+end
+
+OutputDebug("Warning", "Loaded Util after: " .. (tick() - LoadTime) .. "s")
+OutputDebug("Printing","Returning the Util module")
+
+return Util
