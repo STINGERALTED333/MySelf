@@ -171,7 +171,12 @@ local KillersFolder = Assets.Killers
 local SurvivorsFolder = Assets.Survivors
 local KillersSkinsFolder = Assets.Skins.Killers
 local SurvivorsSkinsFolder = Assets.Skins.Survivors
-local NetworkRemote = game.ReplicatedStorage.Modules.Network.Network.RemoteEvent
+local NetworkRemote = nil
+if game.PlaceId == 18687417158 then
+	NetworkRemote = game:GetService("ReplicatedStorage").Modules.Network.Network.RemoteEvent
+else
+	NetworkRemote = game:GetService("ReplicatedStorage").Modules.Network.RemoteEvent
+end
 local ExecutorLevel = 0
 
 --// local functions
