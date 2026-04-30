@@ -601,7 +601,7 @@ end
 local killerAddedConn = Killers.ChildAdded:Connect(function(character)
     if not character:IsA("Model") then return end
     
-    local player = Players:FindFirstChild(character:GetAttribute("Username"))
+    local player = Players:GetPlayerFromCharacter(character)
     if player then
         setupKillerMonitoring(player)
     end
