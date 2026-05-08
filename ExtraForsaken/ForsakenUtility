@@ -668,7 +668,7 @@ Util.TemporaryBlockConnection = function(ConnectionName: string, Duration: numbe
 	end
 	ConnectionType = ConnectionType or "RemoteEvent"
 	OutputDebug("Warning", "Blocking event " .. ConnectionName .. " type " .. ConnectionType)
-	local Remote = game.ReplicatedStorage.Modules.Network:FindFirstChild(ConnectionType)
+	local Remote = NetworkRemote:FindFirstChild(ConnectionType)
 	if not Remote then
 		OutputDebug("Warning", "Event not found: " .. ConnectionType)
 		return
@@ -693,7 +693,7 @@ end
 
 Util.TemporaryFireConnection = function(ConnectionName: string, ConnectionType: string?, ...)
 	ConnectionType = ConnectionType or "RemoteEvent"
-	local Remote = game.ReplicatedStorage.Modules.Network:FindFirstChild(ConnectionType)
+	local Remote = NetworkRemote:FindFirstChild(ConnectionType)
 	if not Remote then
 		OutputDebug("Warning", "TemporaryFireConnection : Event not found: " .. ConnectionType)
 		return
