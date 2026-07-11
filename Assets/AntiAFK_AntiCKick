@@ -1,0 +1,34 @@
+local Settings = {
+    clientantikick = true,
+    clientantiafk = true
+}
+
+local function EnableAntiAFK()
+    if not Settings.clientantiafk then return end
+
+    local VirtualUser = game:GetService("VirtualUser")
+
+    game:GetService("Players").LocalPlayer.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
+end
+
+local function EnableAntiKick()
+    if not Settings.clientantikick then return end
+
+    local oldNamecall
+
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+
+        if method == "Kick" and self == game:GetService("Players").LocalPlayer then
+            return
+        end
+
+        return oldNamecall(self, ...)
+    end)
+end
+
+EnableAntiAFK()
+EnableAntiKick()
